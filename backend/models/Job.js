@@ -42,6 +42,14 @@ const jobSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    applicationDeadline: {
+        type: Date,
+        default: null
+    },
+    originalApplicationDeadline: {
+        type: Date,
+        default: null
+    },
     isOpen: {
         type: Boolean,
         default: true

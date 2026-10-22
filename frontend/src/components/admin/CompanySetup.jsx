@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from '../shared/Navbar'
+import Footer from '../shared/Footer'
 import { Button } from '../ui/button'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Label } from '../ui/label'
@@ -102,7 +103,7 @@ const CompanySetup = () => {
                             />
                         </div>
                         <div>
-                            <Label>Website</Label>
+                            <Label>Website (optional)</Label>
                             <Input
                                 type="text"
                                 name="website"
@@ -131,7 +132,7 @@ const CompanySetup = () => {
                     <Button type="submit" className="w-full my-4">Update</Button>
                 </form>
             </div>
-
+            <Footer />
         </div>
     )
 }

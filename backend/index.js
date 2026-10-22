@@ -2,6 +2,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { connectDB } = require("./utils/db.js");
+const { closeExpiredJobs } = require('./utils/jobDeadline.js');
 require('dotenv').config();
 
 const userRoute = require("./routes/user.route.js");
@@ -47,6 +48,10 @@ app.use("/api/v1/application", applicationRoute);
 const startServer = async () => {
     try {
         await connectDB();
+        await closeExpiredJobs();
+        setInterval(() => {
+            closeExpiredJobs().catch(error => console.error('Failed to close expired jobs:', error.message));
+        }, 60 * 1000);
         app.listen(PORT, () => console.log(`Server running at port ${PORT}`));
     } catch (error) {
         console.error('Failed to connect to MongoDB:', error.message);

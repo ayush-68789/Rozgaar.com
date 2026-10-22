@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
     phoneNumber: {
-        type: Number,
+        // Keep phone numbers as text so +country codes and leading zeroes are preserved.
+        type: String,
         required: true
     },
     password:{
@@ -31,7 +32,9 @@ const userSchema = new mongoose.Schema({
         profilePhoto:{
             type:String,
             default:""
-        }
+        },
+        resumeUrl:{ type:String, default:"" },
+        resumeName:{ type:String, default:"" }
     },
 },{timestamps:true});
 

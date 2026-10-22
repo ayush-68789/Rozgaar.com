@@ -1,74 +1,99 @@
-import { Button } from './ui/button'
-import { Bookmark } from 'lucide-react'
-import { Avatar, AvatarImage } from './ui/avatar'
-import { Badge } from './ui/badge'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Banknote, Building2, CalendarDays, ClipboardList, MapPin, BriefcaseBusiness } from 'lucide-react'
 import { formatSalary } from '@/utils/salary'
 import { useApp } from '@/context/AppContext'
 
 const JobCard = ({ job }) => {
     const navigate = useNavigate();
-    const { allAppliedJobs, user } = useApp();
-    const hasApplied = user?.role === 'student' && allAppliedJobs.some(application =>
-        String(application?.job?._id || application?.job) === String(job?._id)
-    );
-    const statusLabel = hasApplied ? 'Already applied' : job?.isOpen === false ? 'Closed' : 'Open';
+    const { allJobs } = useApp();
+    const [logoFailed, setLogoFailed] = useState(false);
+    const createdAt = job?.createdAt ? new Date(job.createdAt) : null;
+    const postedLabel = createdAt && !Number.isNaN(createdAt.getTime())
+        ? `Posted ${createdAt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`
+        : 'Posted date unavailable';
+    const requirements = Array.isArray(job?.requirements)
+        ? job.requirements.flatMap(value => String(value).split(/[,•]/)).map(value => value.trim()).filter(Boolean)
+        : [];
+    const experience = Number(job?.experienceLevel);
+    const experienceLabel = experience > 0 ? `${experience} year${experience === 1 ? '' : 's'}${experience === 1 ? '' : '+'} experience` : 'No experience required';
+    const location = job?.location || 'Location not specified';
+    const isRemote = /remote|work from home|wfh/i.test(`${location} ${job?.jobType || ''}`);
+    const deadlineDate = job?.applicationDeadline ? String(job.applicationDeadline).slice(0, 10) : '';
+    const deadlineEnd = deadlineDate ? new Date(`${deadlineDate}T23:59:59.999Z`).getTime() : Infinity;
+    const deadlinePassed = Date.now() > deadlineEnd;
+    const open = job?.isOpen !== false && !deadlinePassed;
+    const companyId = String(job?.company?._id || job?.company || '');
+    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+    const recentCompanyPostCount = allJobs.filter(companyJob => {
+        const postedAt = new Date(companyJob?.createdAt).getTime();
+        const listedCompanyId = String(companyJob?.company?._id || companyJob?.company || '');
+        return companyId && listedCompanyId === companyId && Number.isFinite(postedAt) && postedAt >= oneYearAgo && postedAt <= Date.now();
+    }).length;
+    const activelyHiring = open && recentCompanyPostCount > 2;
+    const originalDeadlineDate = job?.originalApplicationDeadline ? String(job.originalApplicationDeadline).slice(0, 10) : '';
+    const deadlineExtended = Boolean(originalDeadlineDate && deadlineDate > originalDeadlineDate);
+    const deadlineLabel = deadlineDate
+        ? new Date(`${deadlineDate}T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : '';
 
-    const daysAgoFunction = (mongodbTime) => {
-        if (!mongodbTime) return 0;
-        const createdAt = new Date(mongodbTime);
-        const currentTime = new Date();
-        const timeDifference = currentTime - createdAt;
-        return Math.floor(timeDifference / (1000 * 24 * 60 * 60));
-    }
+    const openDetails = () => navigate(`/description/${job?._id}`);
 
     return (
-        <motion.div
-            whileHover={{ y: -5 }}
-            transition={{ duration: 0.2 }}
-            className='job-feed-card p-5 rounded-md shadow-xl bg-white border border-gray-100 flex flex-col justify-between hover:shadow-2xl transition-all duration-300'
+        <motion.article
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.18 }}
+            className='job-feed-card'
+            onClick={openDetails}
+            onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openDetails();
+                }
+            }}
+            role='link'
+            tabIndex={0}
+            aria-label={`View ${job?.title || 'job'} at ${job?.company?.name || 'company'}`}
         >
-            <div>
-                <div className='flex items-center justify-between'>
-                    <p className='text-sm text-gray-500'>
-                        {daysAgoFunction(job?.createdAt) === 0 ? "Today" : `${daysAgoFunction(job?.createdAt)} days ago`}
-                    </p>
-                    <Badge className={`job-availability-badge ${hasApplied ? 'applied' : job?.isOpen === false ? 'closed' : 'open'}`} variant="ghost">{statusLabel}</Badge>
-                    <Button variant="outline" className="rounded-full" size="icon">
-                        <Bookmark className='w-4 h-4' />
-                    </Button>
-                </div>
-
-                <div className='flex items-center gap-2 my-2'>
-                    <Button className="p-6" variant="outline" size="icon">
-                        <Avatar>
-                            <AvatarImage src={job?.company?.logo || "https://img.freepik.com/free-vector/bird-colorful-logo-gradient-vector_343694-1365.jpg"} alt={job?.company?.name} />
-                        </Avatar>
-                    </Button>
-                    <div>
-                        <h1 className='font-medium text-lg'>{job?.company?.name || "Company Name"}</h1>
-                        <p className='text-sm text-gray-500'>{job?.location || "India"}</p>
+            <div className='job-feed-card-main'>
+                <div className='job-feed-card-copy'>
+                    <h2 className='job-feed-title'>{job?.title || 'Untitled role'}</h2>
+                    <div className='job-feed-company-line'>
+                        <span className='job-feed-company'>{job?.company?.name || 'Company not specified'}</span>
+                        <span className={`job-hiring-badge ${!open ? 'is-closed' : !activelyHiring ? 'is-open' : ''}`}>{!open ? 'Not hiring' : activelyHiring ? 'Actively hiring' : 'Open'}</span>
                     </div>
                 </div>
-
-                <div>
-                    <h1 className='font-bold text-lg my-2'>{job?.title}</h1>
-                    <p className='text-sm text-gray-600 line-clamp-2'>{job?.description}</p>
-                </div>
-
-                <div className='flex items-center gap-2 mt-4 flex-wrap'>
-                    <Badge className={'text-blue-700 font-bold'} variant="ghost">{job?.position} Positions</Badge>
-                    <Badge className={'text-[#F83002] font-bold'} variant="ghost">{job?.jobType}</Badge>
-                    <Badge className={'text-[#720361] font-bold'} variant="ghost">{formatSalary(job)}</Badge>
+                <div className='job-feed-logo' aria-hidden='true'>
+                    {job?.company?.logo && !logoFailed
+                        ? <img src={job.company.logo} alt='' onError={() => setLogoFailed(true)} />
+                        : <Building2 size={25} strokeWidth={1.8} />}
                 </div>
             </div>
 
-            <div className='flex items-center gap-4 mt-4'>
-                <Button onClick={() => navigate(`/description/${job?._id}`)} variant="outline">Details</Button>
-                <Button className="bg-[#720361] hover:bg-[#5b024d] text-white">Save For Later</Button>
+            <div className='job-feed-meta'>
+                <span><MapPin size={14} />{isRemote ? 'Work from home' : location}</span>
+                <span><Banknote size={14} />{formatSalary(job)}</span>
+                <span><BriefcaseBusiness size={14} />{experienceLabel}</span>
+                {deadlineDate && <span className={deadlinePassed || job?.isOpen === false ? 'job-card-deadline-closed' : deadlineExtended ? 'job-card-deadline-extended' : ''}>
+                    <CalendarDays size={14} />{deadlinePassed || job?.isOpen === false ? 'Applications closed' : `Apply by ${deadlineLabel}${deadlineExtended ? ' · Extended' : ''}`}
+                </span>}
             </div>
-        </motion.div>
+
+            <p className='job-feed-description'><ClipboardList size={14} />{job?.description || 'No description provided.'}</p>
+
+            {requirements.length > 0 && (
+                <div className='job-feed-skills' aria-label='Key skills'>
+                    {requirements.map((requirement, index) => <span key={`${requirement}-${index}`}>{requirement}</span>)}
+                </div>
+            )}
+
+            <div className='job-feed-footer'>
+                <span className='job-posted-badge'><CalendarDays size={13} />{postedLabel}</span>
+                {job?.jobType && <><i aria-hidden='true' /> <span>{job.jobType}</span></>}
+                {Number(job?.position) > 0 && <><i aria-hidden='true' /> <span>{job.position} opening{Number(job.position) === 1 ? '' : 's'}</span></>}
+            </div>
+        </motion.article>
     )
 }
 

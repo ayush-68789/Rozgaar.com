@@ -6,8 +6,16 @@ import { toast } from 'react-toastify';
 import { APPLICATION_API_END_POINT } from '@/utils/constant';
 import axios from 'axios';
 import { useState } from 'react';
+import { downloadResume } from '@/utils/resume';
 
-const shortlistingStatus = ["Accepted", "Rejected"];
+const applicationStages = [
+    ['pending', 'New application'],
+    ['shortlisted', 'Shortlisted'],
+    ['interview', 'Interview'],
+    ['offered', 'Offer made'],
+    ['accepted', 'Hired'],
+    ['rejected', 'Rejected']
+];
 
 const ApplicantsTable = () => {
     const { applicants, setAllApplicants } = useApp();
@@ -46,12 +54,9 @@ const ApplicantsTable = () => {
     }
 
     const getStatusBadge = (status) => {
-        if (status === 'accepted') {
-            return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Accepted</span>;
-        } else if (status === 'rejected') {
-            return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>;
-        }
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Pending</span>;
+        const stage = applicationStages.find(([value]) => value === status)?.[1] || 'New application';
+        const label = status === 'accepted' ? 'Hired' : stage;
+        return <span className={`applicant-status-badge status-${status || 'pending'}`}>{label}</span>;
     }
 
     return (
@@ -64,6 +69,7 @@ const ApplicantsTable = () => {
                         <TableHead>Candidate</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
+                        <TableHead>Resume</TableHead>
                         <TableHead>Applied</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Action</TableHead>
@@ -76,6 +82,7 @@ const ApplicantsTable = () => {
                                 <TableCell><div className="applicant-candidate"><span className="applicant-initial">{item?.applicant?.fullname?.charAt(0)?.toUpperCase() || '?'}</span><strong>{item?.applicant?.fullname || 'Candidate'}</strong></div></TableCell>
                                 <TableCell>{item?.applicant?.email || '-'}</TableCell>
                                 <TableCell>{item?.applicant?.phoneNumber || '-'}</TableCell>
+                                <TableCell>{item?.applicant?.profile?.resumeUrl ? <button type="button" className="applicant-resume-link applicant-resume-download" onClick={() => downloadResume(item.applicant.profile.resumeUrl, item.applicant.profile.resumeName)}>Download resume</button> : <span className="text-gray-400">Not added</span>}</TableCell>
                                 <TableCell>{item?.createdAt ? new Date(item.createdAt).toLocaleDateString() : '-'}</TableCell>
                                 <TableCell>{getStatusBadge(item?.status)}</TableCell>
                                 <TableCell className="text-right">
@@ -85,10 +92,10 @@ const ApplicantsTable = () => {
                                         </PopoverTrigger>
                                         <PopoverContent align="end" className="w-40 applicant-actions-menu">
                                             {
-                                                shortlistingStatus.map((status, index) => {
+                                                applicationStages.map(([status, label]) => {
                                                     return (
-                                                        <button type="button" disabled={updatingId === item?._id} onClick={() => statusHandler(status, item?._id)} key={index} className={`applicant-status-action ${status.toLowerCase()}`}>
-                                                            <span className="applicant-status-dot" />{status}
+                                                        <button type="button" disabled={updatingId === item?._id || item?.status === status} onClick={() => statusHandler(status, item?._id)} key={status} className={`applicant-status-action ${status}`}>
+                                                            <span className="applicant-status-dot" />{label}
                                                         </button>
                                                     )
                                                 })

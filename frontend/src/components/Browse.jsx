@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import Navbar from './shared/Navbar'
+import Footer from './shared/Footer'
 import JobCard from './JobCard'
 import { useApp } from '@/context/AppContext'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
@@ -27,6 +28,7 @@ const Browse = () => {
                     }
                 </div>
             </div>
+            <Footer />
         </div>
     )
 }

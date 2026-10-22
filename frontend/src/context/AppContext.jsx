@@ -15,7 +15,7 @@ export const AppProvider = ({ children }) => {
     const [allAppliedJobs, setAllAppliedJobs] = useState([]);
     const [applicants, setAllApplicants] = useState(null);
     const [searchedQuery, setSearchedQuery] = useState("");
-    const [jobFilters, setJobFilters] = useState({ location: "", industry: "", salary: "" });
+    const [jobFilters, setJobFilters] = useState({ location: "", industry: "", salary: "", experience: "" });
     const [companies, setCompanies] = useState([]);
     const [singleCompany, setSingleCompany] = useState(null);
     const [searchCompanyByText, setSearchCompanyByText] = useState("");

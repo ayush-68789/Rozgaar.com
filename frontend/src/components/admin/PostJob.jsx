@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../shared/Navbar'
+import Footer from '../shared/Footer'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -9,7 +10,7 @@ import axios from 'axios'
 import { JOB_API_END_POINT } from '@/utils/constant'
 import { toast } from 'react-toastify'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, Loader2 } from 'lucide-react'
 import useGetAllCompanies from '@/hooks/useGetAllCompanies'
 
 const PostJob = () => {
@@ -26,6 +27,7 @@ const PostJob = () => {
         jobType: "",
         experience: "",
         position: 0,
+        applicationDeadline: "",
         companyId: ""
     });
     const [loading, setLoading]= useState(false);
@@ -61,6 +63,7 @@ const PostJob = () => {
                     jobType: job.jobType || '',
                     experience: String(job.experienceLevel ?? ''),
                     position: job.position ?? 1,
+                    applicationDeadline: job.applicationDeadline ? String(job.applicationDeadline).slice(0, 10) : '',
                     companyId: job.company?._id || job.company || ''
                 });
             } catch (error) {
@@ -101,13 +104,15 @@ const PostJob = () => {
     return (
         <div className="app-page admin-page">
             <Navbar />
-            <div className='admin-form-layout'>
-                <form onSubmit = {submitHandler} className='admin-form-card'>
-                    <div className="admin-form-heading"><span>{isEditing ? 'UPDATE LISTING' : 'NEW OPPORTUNITY'}</span><h1>{isEditing ? 'Edit job' : 'Post a new job'}</h1><p>{isEditing ? 'Update the details candidates see for this role.' : 'Add the role details candidates need to apply.'}</p></div>
-                    <div className='grid grid-cols-2 gap-2'>
+            <div className='admin-form-layout recruiter-posting-layout'>
+                <button type="button" className="recruiter-back-link" onClick={() => navigate('/admin/jobs')}><ArrowLeft size={16} /> Back to jobs</button>
+                <form onSubmit = {submitHandler} className='admin-form-card recruiter-posting-card'>
+                    <div className="admin-form-heading recruiter-posting-heading"><span className="recruiter-heading-icon"><BriefcaseBusiness size={18} /></span><h1>{isEditing ? 'Edit job' : 'Post a new job'}</h1><p>{isEditing ? 'Update the details candidates see for this role.' : 'Share the role details to reach the right candidates.'}</p></div>
+                    <div className='grid grid-cols-2 gap-2 recruiter-job-grid'>
                         <div>
-                            <Label>Title</Label>
+                            <Label htmlFor="job-title">Job title</Label>
                             <Input
+                                id="job-title"
                                 type="text"
                                 name="title"
                                 value={input.title}
@@ -116,23 +121,25 @@ const PostJob = () => {
                             />
                         </div>
                         <div>
-                            <Label>Description</Label>
-                            <Input
-                                type="text"
+                            <Label htmlFor="job-description">Job description</Label>
+                            <textarea
+                                id="job-description"
                                 name="description"
                                 value={input.description}
                                 onChange={changeEventHandler}
-                                className="focus-visible:ring-offset-0 focus-visible:ring-0 my-1"
+                                rows="3"
+                                placeholder="Describe the role, team, and impact"
                             />
                         </div>
                         <div>
-                            <Label>Requirements</Label>
-                            <Input
-                                type="text"
+                            <Label htmlFor="job-requirements">Key requirements</Label>
+                            <textarea
+                                id="job-requirements"
                                 name="requirements"
                                 value={input.requirements}
                                 onChange={changeEventHandler}
-                                className="focus-visible:ring-offset-0 focus-visible:ring-0 my-1"
+                                rows="3"
+                                placeholder="Skills, qualifications, and experience"
                             />
                         </div>
                         <div>
@@ -166,8 +173,9 @@ const PostJob = () => {
                             <p className="salary-input-hint">Enter numbers only, then choose the currency unit and pay period.</p>
                         </div>
                         <div>
-                            <Label>Location</Label>
+                            <Label htmlFor="job-location">Location</Label>
                             <Input
+                                id="job-location"
                                 type="text"
                                 name="location"
                                 value={input.location}
@@ -176,8 +184,9 @@ const PostJob = () => {
                             />
                         </div>
                         <div>
-                            <Label>Job Type</Label>
+                            <Label htmlFor="job-type">Job type</Label>
                             <Input
+                                id="job-type"
                                 type="text"
                                 name="jobType"
                                 value={input.jobType}
@@ -186,8 +195,9 @@ const PostJob = () => {
                             />
                         </div>
                         <div>
-                            <Label>Experience Level (years)</Label>
+                            <Label htmlFor="job-experience">Experience level</Label>
                             <Input
+                                id="job-experience"
                                 type="text"
                                 name="experience"
                                 placeholder="e.g. 2 - 4 years, or 0 for entry level"
@@ -197,8 +207,9 @@ const PostJob = () => {
                             />
                         </div>
                         <div>
-                            <Label>No of Postion</Label>
+                            <Label htmlFor="job-positions">Number of openings</Label>
                             <Input
+                                id="job-positions"
                                 type="number"
                                 name="position"
                                 value={input.position}
@@ -206,9 +217,23 @@ const PostJob = () => {
                                 className="focus-visible:ring-offset-0 focus-visible:ring-0 my-1"
                             />
                         </div>
+                        <div>
+                            <Label htmlFor="application-deadline">Last date to apply</Label>
+                            <Input
+                                id="application-deadline"
+                                type="date"
+                                name="applicationDeadline"
+                                value={input.applicationDeadline}
+                                min={new Date().toISOString().slice(0, 10)}
+                                onChange={changeEventHandler}
+                                required
+                                className="focus-visible:ring-offset-0 focus-visible:ring-0 my-1"
+                            />
+                            <p className="salary-input-hint">Candidates can apply through this date. Edit the date later to extend the deadline.</p>
+                        </div>
                         {
                             <div className="company-select-field">
-                                <Label htmlFor="job-company">Company</Label>
+                                <Label htmlFor="job-company">Hiring company</Label>
                                 {companiesLoading ? <p className="company-loading">Loading your companies…</p> : companies.length > 0 ? (
                                     <Select value={input.companyId} onValueChange={selectChangeHandler}>
                                         <SelectTrigger id="job-company" className="w-full"><SelectValue placeholder="Select a company" /></SelectTrigger>
@@ -231,6 +256,7 @@ const PostJob = () => {
                     }
                 </form>
             </div>
+            <Footer />
         </div>
     )
 }

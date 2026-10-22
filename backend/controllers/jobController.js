@@ -1,13 +1,26 @@
 const { Job } = require("../models/Job.js");
 const { Company } = require("../models/company.model.js");
+const { Application } = require("../models/application.model.js");
+const { closeExpiredJobs, getCandidateVisibilityCutoff, hasDeadlinePassed } = require('../utils/jobDeadline.js');
+
+const parseApplicationDeadline = value => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
+};
+
+const deadlineIsBeforeToday = date => {
+    const today = new Date().toISOString().slice(0, 10);
+    return date.toISOString().slice(0, 10) < today;
+};
 
 // recruiter creates job
 const postJob = async (req, res) => {
     try {
-        const { title, description, requirements, salary, salaryUnit = 'LPA', salaryPeriod = 'year', location, jobType, experience, position, companyId } = req.body;
+        const { title, description, requirements, salary, salaryUnit = 'LPA', salaryPeriod = 'year', location, jobType, experience, position, companyId, applicationDeadline } = req.body;
         const userId = req.id;
 
-        if (!title || !description || !requirements || salary === undefined || salary === '' || !location || !jobType || !experience || !position || !companyId) {
+        if (!title || !description || !requirements || salary === undefined || salary === '' || !location || !jobType || !experience || !position || !companyId || !applicationDeadline) {
             return res.status(400).json({
                 message: "Something is missing.",
                 success: false
@@ -19,12 +32,22 @@ const postJob = async (req, res) => {
             return res.status(400).json({ message: 'Enter a valid salary amount and pay period.', success: false });
         }
 
+        const deadline = parseApplicationDeadline(applicationDeadline);
+        if (!deadline || deadlineIsBeforeToday(deadline)) {
+            return res.status(400).json({ message: 'Choose a valid application deadline that is today or later.', success: false });
+        }
+
         // The form accepts useful labels such as "2 - 4 years". Store the
         // lower bound as the numeric experience level used by the model.
         const experienceMatch = String(experience).match(/\d+(?:\.\d+)?/);
         const experienceLevel = experienceMatch ? Number(experienceMatch[0]) : NaN;
         if (!Number.isFinite(experienceLevel)) {
             return res.status(400).json({ message: 'Enter experience as years, for example "2 - 4 years" or "0" for entry level.', success: false });
+        }
+
+        const company = await Company.findOne({ _id: companyId, userId });
+        if (!company) {
+            return res.status(400).json({ message: 'Select one of your registered companies.', success: false });
         }
 
         const job = await Job.create({
@@ -38,6 +61,8 @@ const postJob = async (req, res) => {
             jobType,
             experienceLevel,
             position: Number(position),
+            applicationDeadline: deadline,
+            originalApplicationDeadline: deadline,
             company: companyId,
             created_by: userId
         });
@@ -59,8 +84,12 @@ const postJob = async (req, res) => {
 // student / candidate gets all jobs (with optional search keyword)
 const getAllJobs = async (req, res) => {
     try {
+        await closeExpiredJobs();
         const keyword = req.query.keyword || "";
         const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const matchingCompanies = keyword
+            ? await Company.find({ name: { $regex: safeKeyword, $options: 'i' } }).distinct('_id')
+            : [];
         const query = keyword ? {
             $or: [
                 { title: { $regex: safeKeyword, $options: "i" } },
@@ -68,8 +97,18 @@ const getAllJobs = async (req, res) => {
                 { location: { $regex: safeKeyword, $options: "i" } },
                 { jobType: { $regex: safeKeyword, $options: "i" } },
                 { requirements: { $regex: safeKeyword, $options: "i" } },
+                { company: { $in: matchingCompanies } },
             ]
         } : {};
+        query.$and = [
+            ...(query.$and || []),
+            {
+                $or: [
+                    { applicationDeadline: null },
+                    { applicationDeadline: { $gt: getCandidateVisibilityCutoff() } }
+                ]
+            }
+        ];
         const jobs = await Job.find(query).populate({
             path: "company"
         }).sort({ createdAt: -1 });
@@ -91,13 +130,15 @@ const getAllJobs = async (req, res) => {
 const getJobById = async (req, res) => {
     try {
         const jobId = req.params.id;
+        await closeExpiredJobs();
+        const visibilityCutoff = getCandidateVisibilityCutoff();
         const job = await Job.findById(jobId).populate({
             path: "applications"
         }).populate({
             path: "company"
         });
 
-        if (!job) {
+        if (!job || (job.applicationDeadline && job.applicationDeadline <= visibilityCutoff)) {
             return res.status(404).json({
                 message: "Job not found.",
                 success: false
@@ -119,6 +160,7 @@ const getJobById = async (req, res) => {
 // recruiter gets all jobs posted by them
 const getAdminJobs = async (req, res) => {
     try {
+        await closeExpiredJobs();
         const adminId = req.id;
         const jobs = await Job.find({ created_by: adminId }).populate({
             path: 'company',
@@ -148,8 +190,8 @@ const getAdminJobs = async (req, res) => {
 // recruiter updates an existing job they own
 const updateJob = async (req, res) => {
     try {
-        const { title, description, requirements, salary, salaryUnit, salaryPeriod, location, jobType, experience, position, companyId } = req.body;
-        if (!title || !description || !requirements || salary === undefined || salary === '' || !location || !jobType || !experience || position === undefined || !companyId) {
+        const { title, description, requirements, salary, salaryUnit, salaryPeriod, location, jobType, experience, position, companyId, applicationDeadline } = req.body;
+        if (!title || !description || !requirements || salary === undefined || salary === '' || !location || !jobType || !experience || position === undefined || !companyId || !applicationDeadline) {
             return res.status(400).json({ message: 'Complete all job fields before saving.', success: false });
         }
 
@@ -162,6 +204,10 @@ const updateJob = async (req, res) => {
         }
         if (!Number.isFinite(experienceLevel) || !Number.isInteger(positionCount) || positionCount < 1) {
             return res.status(400).json({ message: 'Enter a valid experience and number of positions.', success: false });
+        }
+        const deadline = parseApplicationDeadline(applicationDeadline);
+        if (!deadline || deadlineIsBeforeToday(deadline)) {
+            return res.status(400).json({ message: 'Choose a valid application deadline that is today or later.', success: false });
         }
 
         const [job, company] = await Promise.all([
@@ -181,6 +227,8 @@ const updateJob = async (req, res) => {
         job.jobType = jobType.trim();
         job.experienceLevel = experienceLevel;
         job.position = positionCount;
+        job.originalApplicationDeadline = job.originalApplicationDeadline || job.applicationDeadline || deadline;
+        job.applicationDeadline = deadline;
         job.company = company._id;
         await job.save();
         await job.populate('company');
@@ -201,7 +249,13 @@ const toggleJobStatus = async (req, res) => {
         }
 
         // Older jobs without isOpen are considered open by the UI.
-        job.isOpen = job.isOpen === false;
+        const shouldOpen = job.isOpen === false;
+        if (shouldOpen && hasDeadlinePassed(job.applicationDeadline)) {
+            job.isOpen = false;
+            await job.save();
+            return res.status(400).json({ message: 'Extend the application deadline before reopening this job.', success: false });
+        }
+        job.isOpen = shouldOpen;
         await job.save();
 
         return res.status(200).json({
@@ -219,13 +273,14 @@ const toggleJobStatus = async (req, res) => {
 const deleteJob = async (req, res) => {
     try {
         const jobId = req.params.id;
-        const job = await Job.findByIdAndDelete(jobId);
+        const job = await Job.findOneAndDelete({ _id: jobId, created_by: req.id });
         if (!job) {
             return res.status(404).json({
-                message: "Job not found.",
+                message: "Job not found or you do not have permission to delete it.",
                 success: false
             });
         }
+        await Application.deleteMany({ job: job._id });
         return res.status(200).json({
             message: "Job deleted successfully.",
             success: true

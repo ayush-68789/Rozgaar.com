@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../shared/Navbar'
+import Footer from '../shared/Footer'
 import ApplicantsTable from './ApplicantsTable'
 import axios from 'axios';
 import { APPLICATION_API_END_POINT } from '@/utils/constant';
@@ -34,7 +35,6 @@ const Applicants = () => {
             <div className='admin-content applicants-content'>
                 <div className="applicants-heading">
                     <div>
-                        <span className="section-kicker">CANDIDATE REVIEW</span>
                         <h1>Applicants</h1>
                         <p>{applicants?.title ? `Review candidates for ${applicants.title}.` : 'Review and manage candidates for this job.'}</p>
                     </div>
@@ -42,6 +42,7 @@ const Applicants = () => {
                 </div>
                 {loading ? <div className="applicants-loading" role="status">Loading applicants…</div> : <ApplicantsTable />}
             </div>
+            <Footer />
         </div>
     )
 }

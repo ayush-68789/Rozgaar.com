@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import Navbar from '../components/shared/Navbar'
+import Footer from '../components/shared/Footer'
 import FilterCard from '../components/FilterCard'
 import JobCard from '../components/JobCard'
 import { useApp } from '@/context/AppContext'
@@ -22,6 +23,7 @@ const Jobs = ({ showNavbar = true, fetchJobs = true }) => {
         };
 
         const compact = value => (value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const selectedValues = value => (Array.isArray(value) ? value : value ? [value] : []);
         const locationAliases = {
             'delhincr': ['delhi', 'ncr', 'noida', 'gurgaon', 'gurugram'],
             'bangalore': ['bangalore', 'bengaluru'],
@@ -29,29 +31,51 @@ const Jobs = ({ showNavbar = true, fetchJobs = true }) => {
         const industryAliases = { 'fullstackdeveloper': ['fullstackdeveloper', 'fullstack', 'fullstackdevelopment'] };
 
         return allJobs.filter(job => {
-            const searchableText = [job.title, job.description, job.location, job.jobType, ...(job.requirements || [])]
+            const searchableText = [job.title, job.description, job.location, job.jobType, job.company?.name, ...(job.requirements || [])]
                 .filter(Boolean).join(' ').toLowerCase();
             if (query && !searchableText.includes(query)) return false;
 
-            if (jobFilters.location) {
-                const selectedLocation = jobFilters.location.toLowerCase();
+            const selectedLocations = selectedValues(jobFilters.location);
+            if (selectedLocations.length) {
                 const locationText = `${job.location || ''} ${job.jobType || ''}`.toLowerCase();
-                const locationOptions = locationAliases[compact(selectedLocation)] || [selectedLocation];
-                const locationMatches = locationOptions.some(option => locationText.includes(option));
-                const remoteMatches = selectedLocation === 'remote' && /remote|work from home|wfh/i.test(locationText);
-                if (!locationMatches && !remoteMatches) return false;
+                const locationMatches = selectedLocations.some(location => {
+                    const selectedLocation = location.toLowerCase();
+                    const locationOptions = locationAliases[compact(selectedLocation)] || [selectedLocation];
+                    return locationOptions.some(option => locationText.includes(option)) ||
+                        (selectedLocation === 'remote' && /remote|work from home|wfh/i.test(locationText));
+                });
+                if (!locationMatches) return false;
             }
 
-            if (jobFilters.industry) {
-                const industryOptions = industryAliases[compact(jobFilters.industry)] || [compact(jobFilters.industry)];
+            const selectedIndustries = selectedValues(jobFilters.industry);
+            if (selectedIndustries.length) {
                 const compactText = compact(searchableText);
-                if (!industryOptions.some(option => compactText.includes(option))) return false;
+                const industryMatches = selectedIndustries.some(industry => {
+                    const industryOptions = industryAliases[compact(industry)] || [compact(industry)];
+                    return industryOptions.some(option => compactText.includes(option));
+                });
+                if (!industryMatches) return false;
             }
 
-            if (jobFilters.salary) {
-                const [min, max] = salaryRanges[jobFilters.salary] || [];
+            const selectedSalaries = selectedValues(jobFilters.salary);
+            if (selectedSalaries.length) {
                 const salary = getMonthlySalaryInRupees(job);
-                if (!Number.isFinite(salary) || min === undefined || salary < min || salary > max) return false;
+                const salaryMatches = selectedSalaries.some(range => {
+                    const [min, max] = salaryRanges[range] || [];
+                    return Number.isFinite(salary) && min !== undefined && salary >= min && salary <= max;
+                });
+                if (!salaryMatches) return false;
+            }
+            if (jobFilters.experience) {
+                const years = Number(job.experienceLevel || 0);
+                const experienceMatches = {
+                    fresher: years === 0,
+                    '0-1': years <= 1,
+                    '1-3': years > 1 && years <= 3,
+                    '3-5': years > 3 && years <= 5,
+                    '5+': years >= 5
+                };
+                if (!experienceMatches[jobFilters.experience]) return false;
             }
             return true;
         });
@@ -66,7 +90,7 @@ const Jobs = ({ showNavbar = true, fetchJobs = true }) => {
                     </div>
                     <div className='job-results-scroll job-feed-main'>
                         <div className="job-feed-heading">
-                            <div><span className="section-kicker">STUDENT JOB FEED</span><h1>Recommended jobs</h1></div>
+                            <div><h1>Recommended jobs</h1></div>
                             <span className="job-result-count">{filterJobs.length} {filterJobs.length === 1 ? 'job' : 'jobs'}</span>
                         </div>
                         {filterJobs.length <= 0 ? (
@@ -91,6 +115,7 @@ const Jobs = ({ showNavbar = true, fetchJobs = true }) => {
                         )}
                     </div>
             </div>
+            <Footer />
         </div>
     )
 }

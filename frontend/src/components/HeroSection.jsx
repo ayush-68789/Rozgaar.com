@@ -1,51 +1,43 @@
 import React, { useState } from 'react'
-import { ArrowRight, BriefcaseBusiness, Building2, Search, Sparkles } from 'lucide-react'
-import { Button } from './ui/button'
+import { ArrowRight, BriefcaseBusiness, MapPin, Search } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { Link, useNavigate } from 'react-router-dom'
 
 const HeroSection = () => {
-    const [query, setQuery] = useState("");
-    const { setSearchedQuery, allJobs } = useApp();
-    const navigate = useNavigate();
-    const companies = [...new Map((allJobs || []).filter((job) => job.company?.name).map((job) => [job.company.name, job.company])).values()];
+    const [keyword, setKeyword] = useState('')
+    const [experience, setExperience] = useState('')
+    const [location, setLocation] = useState('')
+    const { allJobs, user, setSearchedQuery, setJobFilters } = useApp()
+    const navigate = useNavigate()
 
-    const searchJobHandler = () => {
-        setSearchedQuery(query);
-        navigate("/browse");
+    const searchJobs = (event) => {
+        event.preventDefault()
+        setSearchedQuery(keyword.trim())
+        setJobFilters(current => ({ ...current, location: location.trim(), experience }))
+        navigate('/jobs')
     }
 
     return (
-        <>
-            <section className="home-hero">
-                <div className="home-hero-inner">
-                    <div className="hero-copy">
-                        <span className="eyebrow"><Sparkles size={15} /> FIND YOUR NEXT OPPORTUNITY</span>
-                        <h1>Good work starts<br />with the <span>right job.</span></h1>
-                        <p>Discover open roles from companies looking for people like you. Search, explore, and take your next step.</p>
-                        <div className="hero-actions">
-                            <Button onClick={() => navigate('/signup')} className="button-teal"><BriefcaseBusiness size={17} /> Create an account</Button>
-                            <Link to="/login" className="hero-login-link">Already have an account? <strong>Log in</strong> <ArrowRight size={14}/></Link>
-                        </div>
-                        <Link to="/admin/companies" className="employer-entry">Hiring for your company? <strong>For employers</strong> <ArrowRight size={14}/></Link>
-                    </div>
-                    <div className="hero-visual">
-                        <img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=85" alt="Colleagues working together" />
-                        <div className="hero-image-wash" />
-                        <div className="hero-stats-card">
-                            <div className="mini-stat"><span className="stat-icon teal"><BriefcaseBusiness size={19} /></span><span><strong>{allJobs?.length || 0}</strong><small>Open opportunities</small></span></div>
-                            <div className="mini-stat"><span className="stat-icon blue"><Building2 size={19} /></span><span><strong>{companies.length}</strong><small>Companies hiring</small></span></div>
-                            <Button onClick={() => navigate('/jobs')} className="button-amber">Explore jobs <ArrowRight size={15} /></Button>
-                        </div>
-                    </div>
+        <section className="home-hero">
+            <div className="home-hero-inner">
+                <div className="hero-copy">
+                    <span className="eyebrow">YOUR NEXT OPPORTUNITY STARTS HERE</span>
+                    <h1>Find your dream job <span>today</span></h1>
+                    <p className="hero-subtitle">{allJobs?.length || 0} opportunities to explore on Rozgaar.com</p>
+                    {user?.role !== 'student' && <Link className="hero-employer-link" to="/employer/login"><BriefcaseBusiness size={15} /> Hiring talent? <strong>For employers</strong> <ArrowRight size={14} /></Link>}
                 </div>
-                <div className="search-panel">
-                    <div className="search-input-wrap"><Search size={18} /><input type="text" placeholder="Search by job title, keyword or company" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchJobHandler()} /></div>
-                    <Button onClick={searchJobHandler} className="search-submit">Search jobs <ArrowRight size={16} /></Button>
-                </div>
-                {companies.length > 0 && <div className="company-trust-row"><span>Explore roles at</span>{companies.slice(0, 6).map((company) => <div className="trust-company" key={company._id || company.name}>{company.logo && <img src={company.logo} alt="" />}<strong>{company.name}</strong></div>)}</div>}
-            </section>
-        </>
+            </div>
+            <form className="search-panel" onSubmit={searchJobs}>
+                <label className="search-input-wrap"><Search size={19} /><input aria-label="Skills, job title or company" type="search" placeholder="Enter skills / designations / companies" value={keyword} onChange={event => setKeyword(event.target.value)} /></label>
+                <label className="hero-select-wrap"><select aria-label="Select experience" value={experience} onChange={event => setExperience(event.target.value)}><option value="">Select experience</option><option value="fresher">Fresher</option><option value="0-1">0–1 years</option><option value="1-3">1–3 years</option><option value="3-5">3–5 years</option><option value="5+">5+ years</option></select></label>
+                <label className="hero-location-wrap"><MapPin size={17} /><input aria-label="Enter location" placeholder="Enter location" value={location} onChange={event => setLocation(event.target.value)} /></label>
+                <button className="search-submit" type="submit">Search <ArrowRight size={15} /></button>
+            </form>
+            <div className="hero-trending" aria-label="Trending searches">
+                <span>Trending:</span>
+                {['html and css', 'front end developer', 'data analyst'].map(term => <button key={term} type="button" onClick={() => { setKeyword(term); setSearchedQuery(term); setJobFilters({ location: '', industry: '', salary: '', experience: '' }); navigate('/jobs') }}>{term} <span>↗</span></button>)}
+            </div>
+        </section>
     )
 }
 

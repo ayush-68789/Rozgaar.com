@@ -58,7 +58,8 @@ const AdminJobsTable = () => {
                         <TableHead>Company Name</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Application deadline</TableHead>
+                        <TableHead>Applicants</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -73,7 +74,20 @@ const AdminJobsTable = () => {
                                         {job?.isOpen !== false ? 'Open' : 'Closed'}
                                     </span>
                                 </TableCell>
-                                <TableCell>{job?.createdAt.split("T")[0]}</TableCell>
+                                <TableCell>
+                                    {job?.applicationDeadline ? new Date(job.applicationDeadline).toISOString().slice(0, 10) : 'Not set'}
+                                    {job?.originalApplicationDeadline && job?.applicationDeadline && new Date(job.applicationDeadline) > new Date(job.originalApplicationDeadline) && <span className="ml-2 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">Extended</span>}
+                                </TableCell>
+                                <TableCell>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/admin/jobs/${job._id}/applicants`)}
+                                        className="font-medium text-blue-700 hover:underline"
+                                        aria-label={`View ${job?.applications?.length || 0} applicants for ${job?.title}`}
+                                    >
+                                        {job?.applications?.length || 0}
+                                    </button>
+                                </TableCell>
                                 <TableCell className="text-right cursor-pointer">
                                     <Popover>
                                         <PopoverTrigger><MoreHorizontal /></PopoverTrigger>

@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { User } = require("../models/user.model.js");
 
 const authCookieOptions = {
     httpOnly: true,
@@ -34,4 +35,17 @@ const isAuthenticated = async (req, res, next) => {
     }
 }
 
-module.exports = { isAuthenticated };
+const isRecruiter = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.id).select('role');
+        if (!user || user.role !== 'recruiter') {
+            return res.status(403).json({ message: 'Recruiter access is required.', success: false });
+        }
+        next();
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: 'Unable to verify recruiter access.', success: false });
+    }
+};
+
+module.exports = { isAuthenticated, isRecruiter };
