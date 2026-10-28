@@ -4,7 +4,8 @@ const { applyJob, getApplicants, getAppliedJobs, updateStatus, deleteApplication
  
 const router = express.Router();
 
-router.route("/apply/:id").get(isAuthenticated, applyJob);
+// POST (not GET): applying changes data, and GETs can be triggered cross-site with the session cookie.
+router.route("/apply/:id").post(isAuthenticated, applyJob);
 router.route("/get").get(isAuthenticated, getAppliedJobs);
 router.route("/:id/applicants").get(isAuthenticated, isRecruiter, getApplicants);
 router.route("/status/:id/update").post(isAuthenticated, isRecruiter, updateStatus);

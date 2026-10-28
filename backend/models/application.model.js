@@ -18,6 +18,9 @@ const applicationSchema = new mongoose.Schema({
     }
 },{timestamps:true});
 
+// One application per candidate per job, enforced by the database (prevents double-click duplicates).
+applicationSchema.index({ job: 1, applicant: 1 }, { unique: true });
+
 const Application = mongoose.model("Application", applicationSchema);
 
 module.exports = { Application };

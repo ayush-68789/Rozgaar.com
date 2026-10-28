@@ -23,3 +23,5 @@ services:
         sync: false
       - key: FRONTEND_URLS
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

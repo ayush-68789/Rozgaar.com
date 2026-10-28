@@ -11,6 +11,9 @@ const isResumeFile = (file) => file && [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ].includes(file.mimetype);
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
 const uploadResume = async (resume) => {
     if (!isResumeFile(resume)) throw new Error('Upload a PDF, DOC, or DOCX resume.');
     const fileUri = getDataUri(resume);
@@ -97,14 +100,21 @@ const getCurrentUser = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { fullname, email, phoneNumber, password, role } = req.body;
-         
+        const { fullname, phoneNumber, password, role } = req.body;
+        const email = String(req.body.email || '').trim().toLowerCase();
+
         if (!fullname || !email || !phoneNumber || !password || !role) {
             return res.status(400).json({
                 message: "Something is missing",
                 success: false
             });
         };
+        if (!EMAIL_PATTERN.test(email)) {
+            return res.status(400).json({ message: 'Enter a valid email address.', success: false });
+        }
+        if (String(password).length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`, success: false });
+        }
         if (!['student', 'recruiter'].includes(role)) {
             return res.status(400).json({ message: 'Choose a valid account type.', success: false });
         }
@@ -116,13 +126,8 @@ const register = async (req, res) => {
         if (resume && !isResumeFile(resume)) {
             return res.status(400).json({ message: 'Upload a PDF, DOC, or DOCX resume.', success: false });
         }
-        let profilePhoto = "";
-        if (file) {
-            const fileUri = getDataUri(file);
-            const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
-            profilePhoto = cloudResponse.secure_url;
-        }
 
+        // Check for an existing account BEFORE uploading anything, so failed sign-ups don't leave orphaned files in Cloudinary.
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({
@@ -130,13 +135,20 @@ const register = async (req, res) => {
                 success: false,
             })
         }
+
+        let profilePhoto = "";
+        if (file) {
+            const fileUri = getDataUri(file);
+            const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+            profilePhoto = cloudResponse.secure_url;
+        }
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const profile = { profilePhoto };
         if (resume) Object.assign(profile, await uploadResume(resume));
 
         const newUser = await User.create({
-            fullname,
+            fullname: String(fullname).trim(),
             email,
             phoneNumber,
             password: hashedPassword,
@@ -180,8 +192,9 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password, role } = req.body;
-        
+        const { password, role } = req.body;
+        const email = String(req.body.email || '').trim().toLowerCase();
+
         if (!email || !password || !role) {
             return res.status(400).json({
                 message: "Something is missing",
@@ -267,7 +280,17 @@ const updateProfile = async (req, res) => {
         }
         // updating data
         if(fullname) user.fullname = fullname.trim()
-        if(email) user.email = email.trim().toLowerCase()
+        if(email) {
+            const nextEmail = email.trim().toLowerCase();
+            if (!EMAIL_PATTERN.test(nextEmail)) {
+                return res.status(400).json({ message: 'Enter a valid email address.', success: false });
+            }
+            if (nextEmail !== user.email) {
+                const emailTaken = await User.exists({ email: nextEmail, _id: { $ne: user._id } });
+                if (emailTaken) return res.status(409).json({ message: 'That email is already used by another account.', success: false });
+            }
+            user.email = nextEmail;
+        }
         if(phoneNumber) user.phoneNumber = phoneNumber
         if(bio !== undefined) user.profile.bio = bio
         if(skills !== undefined) user.profile.skills = (skills || '').split(',').map(skill => skill.trim()).filter(Boolean)

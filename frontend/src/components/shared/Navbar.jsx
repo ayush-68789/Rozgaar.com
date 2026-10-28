@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Button } from '../ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar'
-import { BriefcaseBusiness, Building2, ChevronDown, FileText, Home, LogOut, Plus, UserRound } from 'lucide-react'
+import { BriefcaseBusiness, Building2, ChevronDown, FileText, Home, LogOut, Plus, Sparkles, UserRound } from 'lucide-react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { USER_API_END_POINT } from '@/utils/constant'
 import { toast } from 'react-toastify'
 import { useApp } from '@/context/AppContext'
+import NotificationBell from './NotificationBell'
 
 const Navbar = () => {
     const { user, setUser } = useApp();
@@ -46,6 +47,7 @@ const Navbar = () => {
                                 <>
                                     <li><NavLink to="/jobs" className={({ isActive }) => isActive ? 'nav-active' : ''}>Jobs</NavLink></li>
                                     <li><NavLink to="/companies" className={({ isActive }) => isActive ? 'nav-active' : ''}>Companies</NavLink></li>
+                                    {user?.role === 'student' && <li><NavLink to="/coach" className={({ isActive }) => isActive ? 'nav-active' : ''}>Career Coach</NavLink></li>}
                                     <li><NavLink to="/about" className={({ isActive }) => isActive ? 'nav-active' : ''}>About Us</NavLink></li>
                                     <li><NavLink to="/contact" className={({ isActive }) => isActive ? 'nav-active' : ''}>Contact</NavLink></li>
                                 </>
@@ -69,6 +71,8 @@ const Navbar = () => {
                                 </details>
                             </div>
                         ) : (
+            <>
+            <NotificationBell />
             <Popover open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
                                 <PopoverTrigger asChild>
                                     <button type="button" className="account-menu-trigger" aria-label="Open account menu" aria-expanded={accountMenuOpen}>
@@ -101,11 +105,13 @@ const Navbar = () => {
                                         </> : <>
                                             <Link to="/profile" onClick={() => setAccountMenuOpen(false)}><UserRound size={17} />My Profile</Link>
                                             <Link to="/applications" onClick={() => setAccountMenuOpen(false)}><FileText size={17} />My Applications</Link>
+                                            <Link to="/coach" onClick={() => setAccountMenuOpen(false)}><Sparkles size={17} />Career Coach</Link>
                                         </>}
                                     </nav>
                                     <button type="button" className="account-menu-logout" onClick={logoutHandler}><LogOut size={17} />Logout</button>
                                 </PopoverContent>
                             </Popover>
+                            </>
                         )
                     }
                 </div>

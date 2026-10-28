@@ -48,4 +48,15 @@ const isRecruiter = async (req, res, next) => {
     }
 };
 
-module.exports = { isAuthenticated, isRecruiter };
+// Like isAuthenticated but never blocks: sets req.id when a valid session cookie exists.
+const optionalAuth = (req, _res, next) => {
+    try {
+        const token = req.cookies?.token;
+        if (token) req.id = jwt.verify(token, process.env.SECRET_KEY).userId;
+    } catch {
+        // invalid or expired token: treat as a guest
+    }
+    next();
+};
+
+module.exports = { isAuthenticated, isRecruiter, optionalAuth };
