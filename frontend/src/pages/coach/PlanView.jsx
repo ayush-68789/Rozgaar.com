@@ -1,0 +1,145 @@
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { toast } from 'react-toastify'
+import CoachShell from '@/components/coach/CoachShell'
+import StudentRoute from '@/components/coach/StudentRoute'
+import { coachApi, errorMessage } from '@/utils/coachApi'
+
+const QuizModal = ({ planId, week, onClose, onFinished }) => {
+    const [quiz, setQuiz] = useState(null)
+    const [answers, setAnswers] = useState([])
+    const [result, setResult] = useState(null)
+    const [busy, setBusy] = useState(false)
+
+    useEffect(() => {
+        let cancelled = false
+        coachApi.startQuiz(planId, week).then(res => {
+            if (cancelled) return
+            setQuiz(res.quiz)
+            setAnswers(new Array(res.quiz.questions.length).fill(null))
+        }).catch(error => { toast.error(errorMessage(error, 'Could not load the quiz.')); onClose() })
+        return () => { cancelled = true }
+    }, [planId, week, onClose])
+
+    const submit = async () => {
+        setBusy(true)
+        try {
+            const res = await coachApi.submitQuiz(planId, week, answers)
+            setResult(res.result)
+            onFinished(res.plan, res.result)
+        } catch (error) {
+            toast.error(errorMessage(error, 'Could not submit your answers.'))
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    return (
+        <div className="coach-modal-back" role="dialog" aria-modal="true" aria-label={`Week ${week} quiz`}>
+            <div className="coach-modal">
+                {!quiz && <p className="coach-empty">Preparing your quiz…</p>}
+                {quiz && <>
+                    <h2>Week {quiz.week} quiz: {quiz.skill}</h2>
+                    <p className="coach-muted" style={{ margin: '4px 0 0' }}>
+                        Score {quiz.passMark}% or more to unlock the next week.
+                        {quiz.source === 'self' && ' This is a self-assessment (AI quizzes need a server API key), so it won’t count as verified.'}
+                    </p>
+                    {result && <p className={result.passed ? 'coach-notice' : 'coach-note'} role="status">
+                        {result.passed ? `Passed with ${result.score}%. ${result.source === 'quiz' ? `${quiz.skill} is now a verified skill on your profile.` : 'Next week is unlocked.'}` : `You scored ${result.score}%. Review the explanations below and try again with fresh questions.`}
+                    </p>}
+                    {quiz.questions.map((question, qi) => (
+                        <fieldset key={qi} className="coach-q" style={{ margin: '12px 0 0' }} disabled={Boolean(result)}>
+                            <legend style={{ display: 'none' }}>Question {qi + 1}</legend>
+                            <p>{qi + 1}. {question.q}</p>
+                            {question.options.map((option, oi) => {
+                                const state = result ? (result.questions[qi].correctIndex === oi ? 'right' : answers[qi] === oi ? 'wrong' : '') : ''
+                                return (
+                                    <label key={oi} className={`coach-opt ${state}`}>
+                                        <input type="radio" name={`q${qi}`} checked={answers[qi] === oi} onChange={() => setAnswers(answers.map((a, i) => (i === qi ? oi : a)))} />
+                                        <span>{option}</span>
+                                    </label>
+                                )
+                            })}
+                            {result?.questions[qi].explanation && <p className="coach-muted" style={{ fontWeight: 400, margin: '6px 0 0' }}>{result.questions[qi].explanation}</p>}
+                        </fieldset>
+                    ))}
+                    <div className="coach-row" style={{ marginTop: 18, justifyContent: 'flex-end' }}>
+                        <button type="button" className="coach-btn ghost" onClick={onClose}>{result ? 'Close' : 'Cancel'}</button>
+                        {!result && <button type="button" className="coach-btn" onClick={submit} disabled={busy || answers.some(a => a === null)}>{busy ? 'Grading…' : 'Submit answers'}</button>}
+                    </div>
+                </>}
+            </div>
+        </div>
+    )
+}
+
+const Plan = () => {
+    const { id } = useParams()
+    const [plan, setPlan] = useState(null)
+    const [error, setError] = useState('')
+    const [quizWeek, setQuizWeek] = useState(null)
+
+    useEffect(() => {
+        coachApi.plan(id).then(res => setPlan(res.plan)).catch(err => setError(errorMessage(err, 'Plan not found.')))
+    }, [id])
+
+    const closeQuiz = useCallback(() => setQuizWeek(null), [])
+    const finished = (updated, result) => {
+        setPlan(current => ({ ...updated, job: current?.job }))
+        if (result.passed) toast.success('Week complete!')
+    }
+
+    if (error) return <CoachShell title="Learning plan"><p className="coach-note">{error} <Link to="/coach">Back to dashboard</Link></p></CoachShell>
+    if (!plan) return <CoachShell title="Learning plan"><p className="coach-empty">Loading your plan…</p></CoachShell>
+
+    const done = plan.progress.passed === plan.progress.total
+    return (
+        <CoachShell title={plan.title} subtitle={plan.summary || plan.goal}
+            actions={plan.job && <Link to={`/description/${plan.job._id}`} className="coach-btn ghost">View the job</Link>}>
+            <div style={{ margin: '20px 0' }}>
+                <div className="coach-row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span className="coach-muted">{plan.progress.passed} of {plan.progress.total} weeks complete</span>
+                    <span className="coach-chip">{plan.source === 'ai' ? 'AI-personalised' : 'Template plan'}</span>
+                </div>
+                <div className="coach-bar" role="progressbar" aria-valuenow={plan.progress.percent} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${plan.progress.percent}%` }} /></div>
+            </div>
+            {done && plan.job && <p className="coach-notice">Plan complete. You’re ready to <Link to={`/description/${plan.job._id}`}>apply</Link> with your new verified skills.</p>}
+            <div className="coach-weeks">
+                {plan.weeks.map(week => (
+                    <article key={week.week} className={`coach-week ${week.quizPassed ? 'passed' : !week.unlocked ? 'locked' : ''}`}>
+                        <div className="coach-week-head">
+                            <div>
+                                <span className="coach-muted">Week {week.week} · {week.skill}</span>
+                                <h3>{week.title}</h3>
+                            </div>
+                            {week.quizPassed ? <span className="coach-badge high">Passed {week.bestScore}%</span> : !week.unlocked ? <span className="coach-badge low">Locked</span> : null}
+                        </div>
+                        {week.unlocked ? <>
+                            <ul>{week.topics.map(topic => <li key={topic}>{topic}</li>)}</ul>
+                            {week.resources?.length > 0 && <p className="coach-muted" style={{ margin: '0 0 6px' }}><strong>Study:</strong> {week.resources.join(' · ')}</p>}
+                            {week.project && <p className="coach-muted" style={{ margin: '0 0 12px' }}><strong>Mini project:</strong> {week.project}</p>}
+                            <button type="button" className={`coach-btn${week.quizPassed ? ' ghost' : ''}`} onClick={() => setQuizWeek(week.week)}>
+                                {week.quizPassed ? 'Retake quiz' : week.attempts ? 'Try the quiz again' : 'Take the quiz'}
+                            </button>
+                        </> : <p style={{ margin: 0 }}>Pass the week {week.week - 1} quiz to unlock this week.</p>}
+                    </article>
+                ))}
+            </div>
+            {plan.projectIdeas?.length > 0 && <section className="coach-card" style={{ marginTop: 24 }}>
+                <header><h2>Portfolio project ideas</h2></header>
+                <ul className="coach-list">
+                    {plan.projectIdeas.map(project => (
+                        <li key={project.title}><strong>{project.title}</strong><p className="coach-muted" style={{ margin: '4px 0 6px' }}>{project.description}</p>
+                            <div className="coach-chips">{project.skills?.map(skill => <span key={skill} className="coach-chip">{skill}</span>)}</div></li>
+                    ))}
+                </ul>
+                <p className="coach-muted" style={{ marginBottom: 0 }}>Built one? Add it under “My projects” on the <Link to="/coach">dashboard</Link> so recruiters can see it.</p>
+            </section>}
+            {quizWeek && <QuizModal planId={plan._id} week={quizWeek} onClose={closeQuiz} onFinished={finished} />}
+        </CoachShell>
+    )
+}
+
+const PlanView = () => <StudentRoute><Plan /></StudentRoute>
+
+export default PlanView

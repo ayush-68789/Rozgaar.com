@@ -17,6 +17,10 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Applications from './pages/Applications'
 import CompaniesDirectory from './pages/CompaniesDirectory'
+import CoachDashboard from './pages/coach/CoachDashboard'
+import PlanView from './pages/coach/PlanView'
+import ResumeAnalyzer from './pages/coach/ResumeAnalyzer'
+import TechNews from './pages/coach/TechNews'
 
 
 const appRouter = createBrowserRouter([
@@ -72,6 +76,11 @@ const appRouter = createBrowserRouter([
     path: "/companies",
     element: <CompaniesDirectory />
   },
+  // AI career coach (Solvi) — candidate accounts only
+  { path: '/coach', element: <CoachDashboard /> },
+  { path: '/coach/plan/:id', element: <PlanView /> },
+  { path: '/coach/resume', element: <ResumeAnalyzer /> },
+  { path: '/coach/news', element: <TechNews /> },
   // admin ke liye yha se start hoga
   {
     path:"/admin/companies",

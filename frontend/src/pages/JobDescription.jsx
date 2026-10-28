@@ -11,16 +11,14 @@ import Footer from '../components/shared/Footer'
 import { motion } from 'framer-motion'
 import { formatSalary } from '@/utils/salary'
 import { Building2, MapPin, Users, CalendarDays, ExternalLink } from 'lucide-react'
+import FitPanel from '../components/coach/FitPanel'
 
 const JobDescription = () => {
     const { singleJob, setSingleJob, user } = useApp();
     const params = useParams();
     const jobId = params.id;
 
-    const isInitiallyApplied = singleJob?.applications?.some(application =>
-        String(application?.applicant?._id || application?.applicant || application) === String(user?._id)
-    ) || false;
-    const [isApplied, setIsApplied] = useState(isInitiallyApplied);
+    const [isApplied, setIsApplied] = useState(Boolean(singleJob?.hasApplied));
     const deadlineDate = singleJob?.applicationDeadline ? String(singleJob.applicationDeadline).slice(0, 10) : '';
     const originalDeadlineDate = singleJob?.originalApplicationDeadline ? String(singleJob.originalApplicationDeadline).slice(0, 10) : '';
     const deadlineEnd = deadlineDate ? new Date(`${deadlineDate}T23:59:59.999Z`).getTime() : Infinity;
@@ -42,10 +40,10 @@ const JobDescription = () => {
     const applyJobHandler = async () => {
         if (areApplicationsClosed) return;
         try {
-            const res = await axios.get(`${APPLICATION_API_END_POINT}/apply/${jobId}`, { withCredentials: true });
+            const res = await axios.post(`${APPLICATION_API_END_POINT}/apply/${jobId}`, {}, { withCredentials: true });
             if (res.data.success) {
                 setIsApplied(true);
-                const updatedSingleJob = { ...singleJob, applications: [...singleJob.applications, { applicant: user?._id }] };
+                const updatedSingleJob = { ...singleJob, hasApplied: true, applicationsCount: (singleJob.applicationsCount || 0) + 1 };
                 setSingleJob(updatedSingleJob);
                 toast.success(res.data.message);
             }
@@ -61,9 +59,7 @@ const JobDescription = () => {
                 const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, { withCredentials: true });
                 if (res.data.success) {
                     setSingleJob(res.data.job);
-                    setIsApplied(res.data.job.applications.some(application =>
-                        String(application?.applicant?._id || application?.applicant || application) === String(user?._id)
-                    ));
+                    setIsApplied(Boolean(res.data.job.hasApplied));
                 }
             } catch (error) {
                 console.log(error);
@@ -100,7 +96,7 @@ const JobDescription = () => {
                         </Button>
                         <div className='job-description-apply-stats'>
                             <span>{singleJob?.position || 0} opening{Number(singleJob?.position) === 1 ? '' : 's'}</span>
-                            <span>{singleJob?.applications?.length || 0} applicants</span>
+                            <span>{singleJob?.applicationsCount || 0} applicants</span>
                         </div>
                         {deadlineDate && <div className={`job-deadline-status ${areApplicationsClosed ? 'is-closed' : wasDeadlineExtended ? 'is-extended' : ''}`}>
                             {areApplicationsClosed ? 'Applications closed' : wasDeadlineExtended ? 'Deadline extended' : 'Last date to apply'} · {deadlineLabel}
@@ -117,7 +113,7 @@ const JobDescription = () => {
                         <div><dt>Experience:</dt><dd>{Number(singleJob?.experienceLevel) || 0} yrs</dd></div>
                         <div><dt>Salary:</dt><dd>{formatSalary(singleJob)}</dd></div>
                         {deadlineDate && <div><dt>Application deadline:</dt><dd>{deadlineLabel}{wasDeadlineExtended && <span className='job-deadline-tag'>Extended</span>}{areApplicationsClosed && <span className='job-deadline-tag is-closed'>Applications closed</span>}</dd></div>}
-                        <div><dt>Total Applicants:</dt><dd className='job-detail-with-icon'><Users size={15} />{singleJob?.applications?.length || 0}</dd></div>
+                        <div><dt>Total Applicants:</dt><dd className='job-detail-with-icon'><Users size={15} />{singleJob?.applicationsCount || 0}</dd></div>
                         <div><dt>Posted Date:</dt><dd className='job-detail-with-icon'><CalendarDays size={15} />{postedDateLabel}</dd></div>
                     </dl>
                 </section>
@@ -128,6 +124,8 @@ const JobDescription = () => {
                         {requirements.map((requirement, index) => <span key={`${requirement}-${index}`}>{requirement}</span>)}
                     </div>
                 </section>}
+
+                {user?.role === 'student' && singleJob?._id && <FitPanel key={jobId} jobId={jobId} />}
 
                 {singleJob?.company && <section className='job-description-section job-company-section'>
                     <h2>About {singleJob.company.name || 'the company'}</h2>
