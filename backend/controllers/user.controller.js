@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { getDataUri } = require("../utils/datauri.js");
 const { cloudinary } = require("../utils/cloudinary.js");
+const { generateAndStoreJobRecommendations } = require('../utils/jobRecommendations.js');
 const path = require('path');
 
 const isResumeFile = (file) => file && [
@@ -10,6 +11,9 @@ const isResumeFile = (file) => file && [
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ].includes(file.mimetype);
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
 
 const uploadResume = async (resume) => {
     if (!isResumeFile(resume)) throw new Error('Upload a PDF, DOC, or DOCX resume.');
@@ -97,14 +101,21 @@ const getCurrentUser = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { fullname, email, phoneNumber, password, role } = req.body;
-         
+        const { fullname, phoneNumber, password, role } = req.body;
+        const email = String(req.body.email || '').trim().toLowerCase();
+
         if (!fullname || !email || !phoneNumber || !password || !role) {
             return res.status(400).json({
                 message: "Something is missing",
                 success: false
             });
         };
+        if (!EMAIL_PATTERN.test(email)) {
+            return res.status(400).json({ message: 'Enter a valid email address.', success: false });
+        }
+        if (String(password).length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`, success: false });
+        }
         if (!['student', 'recruiter'].includes(role)) {
             return res.status(400).json({ message: 'Choose a valid account type.', success: false });
         }
@@ -116,13 +127,8 @@ const register = async (req, res) => {
         if (resume && !isResumeFile(resume)) {
             return res.status(400).json({ message: 'Upload a PDF, DOC, or DOCX resume.', success: false });
         }
-        let profilePhoto = "";
-        if (file) {
-            const fileUri = getDataUri(file);
-            const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
-            profilePhoto = cloudResponse.secure_url;
-        }
 
+        // Check for an existing account BEFORE uploading anything, so failed sign-ups don't leave orphaned files in Cloudinary.
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({
@@ -130,13 +136,20 @@ const register = async (req, res) => {
                 success: false,
             })
         }
+
+        let profilePhoto = "";
+        if (file) {
+            const fileUri = getDataUri(file);
+            const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+            profilePhoto = cloudResponse.secure_url;
+        }
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const profile = { profilePhoto };
         if (resume) Object.assign(profile, await uploadResume(resume));
 
         const newUser = await User.create({
-            fullname,
+            fullname: String(fullname).trim(),
             email,
             phoneNumber,
             password: hashedPassword,
@@ -180,8 +193,9 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password, role } = req.body;
-        
+        const { password, role } = req.body;
+        const email = String(req.body.email || '').trim().toLowerCase();
+
         if (!email || !password || !role) {
             return res.status(400).json({
                 message: "Something is missing",
@@ -267,10 +281,25 @@ const updateProfile = async (req, res) => {
         }
         // updating data
         if(fullname) user.fullname = fullname.trim()
-        if(email) user.email = email.trim().toLowerCase()
+        if(email) {
+            const nextEmail = email.trim().toLowerCase();
+            if (!EMAIL_PATTERN.test(nextEmail)) {
+                return res.status(400).json({ message: 'Enter a valid email address.', success: false });
+            }
+            if (nextEmail !== user.email) {
+                const emailTaken = await User.exists({ email: nextEmail, _id: { $ne: user._id } });
+                if (emailTaken) return res.status(409).json({ message: 'That email is already used by another account.', success: false });
+            }
+            user.email = nextEmail;
+        }
         if(phoneNumber) user.phoneNumber = phoneNumber
         if(bio !== undefined) user.profile.bio = bio
-        if(skills !== undefined) user.profile.skills = (skills || '').split(',').map(skill => skill.trim()).filter(Boolean)
+        let skillsChanged = false;
+        if(skills !== undefined) {
+            const nextSkills = (skills || '').split(',').map(skill => skill.trim()).filter(Boolean);
+            skillsChanged = JSON.stringify(nextSkills) !== JSON.stringify(user.profile.skills || []);
+            user.profile.skills = nextSkills;
+        }
 
         // profile photo upload
         if(file){
@@ -282,9 +311,16 @@ const updateProfile = async (req, res) => {
         if (resume) {
             if (user.role !== 'student') return res.status(400).json({ message: 'Only candidates can add a resume.', success: false });
             Object.assign(user.profile, await uploadResume(resume));
+            user.profile.jobRecommendations = [];
+            user.profile.jobRecommendationsUpdatedAt = null;
+            user.profile.jobRecommendationsSource = null;
         }
 
         await user.save();
+        if (skillsChanged && user.role === 'student') {
+            try { await generateAndStoreJobRecommendations(user); }
+            catch (error) { console.error('Could not refresh saved job suggestions:', error.message); }
+        }
 
         user = {
             _id: user._id,
@@ -306,4 +342,81 @@ const updateProfile = async (req, res) => {
     }
 }
 
-module.exports = { register, login, logout, updateProfile, getCurrentUser, downloadResume };
+const PROFILE_RECORD_FIELDS = {
+    projects: ['title', 'link', 'description', 'skills'],
+    education: ['institution', 'degree', 'fieldOfStudy', 'location', 'startDate', 'endDate', 'current', 'description'],
+    experience: ['title', 'company', 'location', 'employmentType', 'startDate', 'endDate', 'current', 'description'],
+    achievements: ['title', 'organization', 'date', 'description', 'link'],
+    certificates: ['title', 'organization', 'date', 'description', 'link']
+};
+
+const PROFILE_RECORD_LIMITS = {
+    title: 120, institution: 160, degree: 120, fieldOfStudy: 120, company: 160,
+    organization: 160, location: 120, employmentType: 80, startDate: 30, endDate: 30,
+    date: 30, description: 1200, link: 500
+};
+
+const cleanProfileRecord = (section, record) => {
+    const clean = {};
+    for (const field of PROFILE_RECORD_FIELDS[section]) {
+        const value = record[field];
+        if (field === 'current') {
+            clean.current = value === true || value === 'true';
+        } else if (field === 'skills') {
+            const skills = Array.isArray(value) ? value : String(value || '').split(',');
+            clean.skills = [...new Set(skills.map(skill => String(skill).trim().slice(0, 60)).filter(Boolean))].slice(0, 20);
+        } else {
+            clean[field] = String(value || '').trim().slice(0, PROFILE_RECORD_LIMITS[field] || 120);
+        }
+    }
+    return clean;
+};
+
+const updateProfileRecords = async (req, res) => {
+    try {
+        const { section } = req.params;
+        if (!Object.hasOwn(PROFILE_RECORD_FIELDS, section)) {
+            return res.status(404).json({ message: 'Profile section not found.', success: false });
+        }
+        if (!Array.isArray(req.body?.records) || req.body.records.length > 20) {
+            return res.status(400).json({ message: 'Submit up to 20 profile entries at a time.', success: false });
+        }
+
+        const requiredField = section === 'education' ? 'institution' : 'title';
+        const records = req.body.records.filter(record => record && typeof record === 'object').map(record => cleanProfileRecord(section, record));
+        for (const record of records) {
+            const hasAnyValue = Object.values(record).some(value => Array.isArray(value) ? value.length > 0 : Boolean(value));
+            if (hasAnyValue && !record[requiredField]) {
+                return res.status(400).json({ message: `Every entry needs a ${requiredField === 'title' ? 'title' : 'institution'}.`, success: false });
+            }
+            for (const field of ['link']) {
+                if (!record[field]) continue;
+                try {
+                    if (new URL(record[field]).protocol !== 'https:') throw new Error('Invalid protocol');
+                } catch {
+                    return res.status(400).json({ message: 'Links must be valid HTTPS URLs.', success: false });
+                }
+            }
+        }
+
+        const user = await User.findById(req.id);
+        if (!user) return res.status(404).json({ message: 'User not found.', success: false });
+        user.profile[section] = records.filter(record => record[requiredField]);
+        await user.save();
+
+        const publicUser = {
+            _id: user._id,
+            fullname: user.fullname,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            profile: user.profile
+        };
+        return res.status(200).json({ user: publicUser, records: user.profile[section], success: true, message: 'Profile section updated.' });
+    } catch (error) {
+        console.error('Profile section update failed:', error);
+        return res.status(500).json({ message: 'Unable to save this profile section.', success: false });
+    }
+};
+
+module.exports = { register, login, logout, updateProfile, updateProfileRecords, getCurrentUser, downloadResume };

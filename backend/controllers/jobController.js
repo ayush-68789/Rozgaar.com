@@ -1,7 +1,7 @@
 const { Job } = require("../models/Job.js");
 const { Company } = require("../models/company.model.js");
 const { Application } = require("../models/application.model.js");
-const { closeExpiredJobs, getCandidateVisibilityCutoff, hasDeadlinePassed } = require('../utils/jobDeadline.js');
+const { getCandidateVisibilityCutoff, hasDeadlinePassed } = require('../utils/jobDeadline.js');
 
 const parseApplicationDeadline = value => {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -84,7 +84,6 @@ const postJob = async (req, res) => {
 // student / candidate gets all jobs (with optional search keyword)
 const getAllJobs = async (req, res) => {
     try {
-        await closeExpiredJobs();
         const keyword = req.query.keyword || "";
         const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const matchingCompanies = keyword
@@ -109,12 +108,24 @@ const getAllJobs = async (req, res) => {
                 ]
             }
         ];
-        const jobs = await Job.find(query).populate({
-            path: "company"
-        }).sort({ createdAt: -1 });
+        // Pagination: ?page=1&limit=20 (default page size 100, max 100)
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 100);
+        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+        const [jobs, total] = await Promise.all([
+            Job.find(query)
+                .select('-applications') // never expose application ids on the public listing
+                .populate({ path: "company" })
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            Job.countDocuments(query)
+        ]);
 
         return res.status(200).json({
             jobs,
+            total,
+            page,
+            pages: Math.ceil(total / limit) || 1,
             success: true
         });
     } catch (error) {
@@ -130,11 +141,9 @@ const getAllJobs = async (req, res) => {
 const getJobById = async (req, res) => {
     try {
         const jobId = req.params.id;
-        await closeExpiredJobs();
         const visibilityCutoff = getCandidateVisibilityCutoff();
+        // Public route: do NOT populate applications (that leaked applicant ids and statuses).
         const job = await Job.findById(jobId).populate({
-            path: "applications"
-        }).populate({
             path: "company"
         });
 
@@ -144,8 +153,12 @@ const getJobById = async (req, res) => {
                 success: false
             });
         }
+        const publicJob = job.toObject();
+        publicJob.applicationsCount = publicJob.applications?.length || 0;
+        publicJob.hasApplied = req.id ? Boolean(await Application.exists({ job: job._id, applicant: req.id })) : false;
+        delete publicJob.applications;
         return res.status(200).json({
-            job,
+            job: publicJob,
             success: true
         });
     } catch (error) {
@@ -160,7 +173,6 @@ const getJobById = async (req, res) => {
 // recruiter gets all jobs posted by them
 const getAdminJobs = async (req, res) => {
     try {
-        await closeExpiredJobs();
         const adminId = req.id;
         const jobs = await Job.find({ created_by: adminId }).populate({
             path: 'company',
