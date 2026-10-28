@@ -1,0 +1,81 @@
+/* Career Coach (Solvi) — scoped under .coach-page so it never touches the rest of the portal. */
+:root { --c-ink:#14233b; --c-muted:#5b6b82; --c-line:#e3e9f2; --c-bg:#f5f8fc; --c-blue:#1769d2; --c-blue-dark:#1253ad; --c-green:#16803c; --c-amber:#b45309; --c-red:#b42318; }
+.coach-page { min-height:100vh; background:var(--c-bg); color:var(--c-ink); }
+.coach-main { max-width:1120px; margin:0 auto; padding:28px 20px 64px; }
+.coach-page h1 { font-size:1.75rem; font-weight:700; letter-spacing:-.01em; margin:0; }
+.coach-card h2, .coach-modal h2 { font-size:1.1rem; font-weight:650; margin:0; }
+.coach-sub { color:var(--c-muted); margin:6px 0 0; max-width:62ch; line-height:1.5; }
+.coach-tabs { display:flex; gap:4px; border-bottom:1px solid var(--c-line); margin-bottom:24px; overflow-x:auto; }
+.coach-tabs a { padding:10px 16px; color:var(--c-muted); font-weight:600; text-decoration:none; border-bottom:2px solid transparent; white-space:nowrap; }
+.coach-tabs a:hover { color:var(--c-ink); }
+.coach-tabs a.active { color:var(--c-blue); border-bottom-color:var(--c-blue); }
+.coach-grid { display:grid; gap:20px; grid-template-columns:repeat(12,1fr); }
+.coach-col-8 { grid-column:span 8; } .coach-col-4 { grid-column:span 4; } .coach-col-12 { grid-column:span 12; } .coach-col-6 { grid-column:span 6; }
+@media (max-width:860px){ .coach-col-8,.coach-col-4,.coach-col-6 { grid-column:span 12; } }
+.coach-card { background:#fff; border:1px solid var(--c-line); border-radius:12px; padding:20px; }
+.coach-card header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.coach-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:20px 0; }
+.coach-stat { background:#fff; border:1px solid var(--c-line); border-radius:12px; padding:14px 16px; }
+.coach-stat strong { display:block; font-size:1.6rem; line-height:1.1; }
+.coach-stat span { color:var(--c-muted); font-size:.85rem; }
+.coach-btn { display:inline-flex; align-items:center; gap:8px; background:var(--c-blue); color:#fff; border:0; border-radius:8px; padding:10px 16px; font-weight:600; cursor:pointer; text-decoration:none; font-size:.92rem; }
+.coach-btn:hover { background:var(--c-blue-dark); }
+.coach-btn:disabled { opacity:.55; cursor:not-allowed; }
+.coach-btn.ghost { background:#fff; color:var(--c-blue); border:1px solid var(--c-blue); }
+.coach-btn.ghost:hover { background:#eef5ff; }
+.coach-btn.danger { background:#fff; color:var(--c-red); border:1px solid #f1c4bf; }
+.coach-btn.small { padding:6px 12px; font-size:.82rem; }
+.coach-input, .coach-textarea, .coach-select { width:100%; border:1px solid #cfd8e6; border-radius:8px; padding:10px 12px; font:inherit; background:#fff; color:var(--c-ink); }
+.coach-textarea { min-height:84px; resize:vertical; }
+.coach-input:focus, .coach-textarea:focus, .coach-select:focus, .coach-btn:focus-visible, .coach-tabs a:focus-visible { outline:2px solid var(--c-blue); outline-offset:2px; }
+.coach-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.coach-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.coach-chip { background:#eef3fb; color:#27456f; border-radius:999px; padding:4px 11px; font-size:.82rem; font-weight:500; }
+.coach-chip.ok { background:#e6f5ec; color:var(--c-green); }
+.coach-chip.miss { background:#fdecea; color:var(--c-red); }
+.coach-chip.self { background:#fff4e0; color:var(--c-amber); }
+.coach-muted { color:var(--c-muted); font-size:.9rem; }
+.coach-empty { color:var(--c-muted); padding:12px 0; }
+.coach-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.coach-list li { border:1px solid var(--c-line); border-radius:10px; padding:12px 14px; }
+.coach-bar { height:8px; border-radius:999px; background:#e7edf6; overflow:hidden; }
+.coach-bar > i { display:block; height:100%; background:var(--c-blue); border-radius:999px; transition:width .4s ease; }
+.coach-badge { display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:.8rem; padding:3px 10px; border-radius:999px; }
+.coach-badge.high { background:#e6f5ec; color:var(--c-green); }
+.coach-badge.mid { background:#fff4e0; color:var(--c-amber); }
+.coach-badge.low { background:#fdecea; color:var(--c-red); }
+.coach-job { display:flex; justify-content:space-between; align-items:center; gap:12px; text-decoration:none; color:inherit; }
+.coach-job strong { display:block; }
+.coach-job:hover strong { color:var(--c-blue); }
+.coach-week { border:1px solid var(--c-line); border-radius:12px; padding:18px; background:#fff; }
+.coach-week.locked { background:#f3f6fa; color:var(--c-muted); }
+.coach-week.passed { border-color:#b7e3c5; }
+.coach-week h3 { margin:0; font-size:1.02rem; }
+.coach-week ul { margin:10px 0; padding-left:18px; line-height:1.6; }
+.coach-week-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:6px; }
+.coach-weeks { display:grid; gap:14px; }
+.coach-ring { --p:0; width:96px; height:96px; border-radius:50%; display:grid; place-items:center; background:conic-gradient(var(--ring,#1769d2) calc(var(--p)*1%), #e7edf6 0); flex:none; }
+.coach-ring::before { content:''; width:74px; height:74px; border-radius:50%; background:#fff; grid-area:1/1; }
+.coach-ring b { grid-area:1/1; font-size:1.35rem; z-index:1; }
+.coach-fit { display:flex; gap:18px; align-items:center; }
+.coach-modal-back { position:fixed; inset:0; background:rgba(15,28,48,.55); display:grid; place-items:center; z-index:60; padding:16px; }
+.coach-modal { background:#fff; border-radius:14px; max-width:640px; width:100%; max-height:90vh; overflow:auto; padding:24px; }
+.coach-q { border:1px solid var(--c-line); border-radius:10px; padding:14px; margin-top:12px; }
+.coach-q p { margin:0 0 8px; font-weight:600; }
+.coach-opt { display:flex; gap:10px; align-items:flex-start; padding:7px 8px; border-radius:8px; cursor:pointer; }
+.coach-opt:hover { background:#f2f6fc; }
+.coach-opt.right { background:#e6f5ec; } .coach-opt.wrong { background:#fdecea; }
+.coach-news a { text-decoration:none; color:inherit; display:block; }
+.coach-news a:hover strong { color:var(--c-blue); }
+.coach-note { background:#fff8e6; border:1px solid #f3dfa5; color:#7a5200; border-radius:10px; padding:10px 14px; font-size:.88rem; margin:14px 0; }
+.coach-notice { background:#eef5ff; border:1px solid #cfe0fa; border-radius:10px; padding:10px 14px; font-size:.88rem; margin:14px 0; }
+@media (prefers-reduced-motion: reduce) { .coach-bar > i { transition:none; } }
+/* notification bell */
+.notif-trigger { position:relative; background:transparent; border:0; cursor:pointer; padding:8px; border-radius:50%; color:inherit; display:grid; place-items:center; }
+.notif-trigger:hover { background:rgba(23,105,210,.1); }
+.notif-dot { position:absolute; top:2px; right:2px; background:#d92d20; color:#fff; border-radius:999px; font-size:.65rem; min-width:17px; height:17px; display:grid; place-items:center; font-weight:700; padding:0 4px; }
+.notif-item { display:block; text-align:left; width:100%; background:transparent; border:0; border-bottom:1px solid #eef2f8; padding:10px 6px; cursor:pointer; }
+.notif-item:hover { background:#f5f8fc; }
+.notif-item.unread strong::before { content:''; display:inline-block; width:7px; height:7px; background:#1769d2; border-radius:50%; margin-right:6px; }
+.notif-item small { color:#6b7a90; display:block; }
+.fit-cell { display:grid; gap:4px; min-width:120px; }
