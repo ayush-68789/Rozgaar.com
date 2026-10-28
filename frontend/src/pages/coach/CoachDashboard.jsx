@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { ExternalLink, Trash2 } from 'lucide-react'
 import CoachShell from '@/components/coach/CoachShell'
 import StudentRoute from '@/components/coach/StudentRoute'
 import ReadinessBadge from '@/components/coach/ReadinessBadge'
@@ -40,66 +39,14 @@ const GoalBox = ({ onDone }) => {
     )
 }
 
-const ProjectsCard = ({ projects, onChange }) => {
-    const [form, setForm] = useState({ title: '', link: '', skills: '' })
-    const [busy, setBusy] = useState(false)
-
-    const add = async event => {
-        event.preventDefault()
-        setBusy(true)
-        try {
-            const res = await coachApi.addProject(form)
-            onChange(res.projects)
-            setForm({ title: '', link: '', skills: '' })
-            toast.success(res.message)
-        } catch (error) {
-            toast.error(errorMessage(error, 'Could not add the project.'))
-        } finally {
-            setBusy(false)
-        }
-    }
-    const remove = async id => {
-        try { onChange((await coachApi.deleteProject(id)).projects) } catch (error) { toast.error(errorMessage(error)) }
-    }
-
-    return (
-        <section className="coach-card" aria-labelledby="projects-h">
-            <header><h2 id="projects-h">My projects</h2><span className="coach-muted">Recruiters see these on your application</span></header>
-            {projects.length === 0 && <p className="coach-empty">Add your best projects. Plans also suggest portfolio ideas.</p>}
-            <ul className="coach-list">
-                {projects.map(project => (
-                    <li key={project._id}>
-                        <div className="coach-row" style={{ justifyContent: 'space-between' }}>
-                            <strong>{project.title}</strong>
-                            <span className="coach-row">
-                                {project.link && <a href={project.link} target="_blank" rel="noreferrer" aria-label={`Open ${project.title}`}><ExternalLink size={16} /></a>}
-                                <button type="button" onClick={() => remove(project._id)} aria-label={`Remove ${project.title}`} style={{ background: 'none', border: 0, cursor: 'pointer', color: '#b42318' }}><Trash2 size={16} /></button>
-                            </span>
-                        </div>
-                        {project.skills?.length > 0 && <div className="coach-chips" style={{ marginTop: 6 }}>{project.skills.map(skill => <span className="coach-chip" key={skill}>{skill}</span>)}</div>}
-                    </li>
-                ))}
-            </ul>
-            <form onSubmit={add} style={{ display: 'grid', gap: 8, marginTop: 14 }}>
-                <input className="coach-input" placeholder="Project title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required maxLength={120} aria-label="Project title" />
-                <input className="coach-input" placeholder="Link (GitHub or live demo, optional)" value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} aria-label="Project link" />
-                <input className="coach-input" placeholder="Skills used, comma separated" value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} aria-label="Skills used" />
-                <div><button type="submit" className="coach-btn small" disabled={busy || !form.title.trim()}>Add project</button></div>
-            </form>
-        </section>
-    )
-}
-
 const Dashboard = () => {
     const [data, setData] = useState(null)
     const [error, setError] = useState('')
-    const [projects, setProjects] = useState([])
 
     const load = useCallback(async () => {
         try {
             const res = await coachApi.overview()
             setData(res.overview)
-            setProjects(res.overview.projects || [])
         } catch (err) {
             setError(errorMessage(err, 'Could not load your dashboard.'))
         }
@@ -119,7 +66,7 @@ const Dashboard = () => {
     return (
         <CoachShell title={`Hi ${data.name?.split(' ')[0] || 'there'}, let’s get you job-ready`}
             subtitle={data.targetRole ? `Current goal: ${data.targetRole}` : 'Set a goal, close your skill gaps, then apply with proof.'}>
-            {!data.aiEnabled && <p className="coach-note">AI is off on this server, so plans use built-in templates and quizzes are self-assessments. Set <code>ANTHROPIC_API_KEY</code> in the backend <code>.env</code> to get personalised plans, real quizzes and deeper resume feedback.</p>}
+            {!data.aiEnabled && <p className="coach-note">AI is off on this server, so plans use built-in templates and quizzes are self-assessments. Add your Groq key as <code>GROQ_API_KEY</code> in the backend <code>.env</code> to get personalised plans, real quizzes and deeper resume feedback.</p>}
             <div className="coach-stats">
                 <div className="coach-stat"><strong>{data.learningProgress}%</strong><span>learning progress</span></div>
                 <div className="coach-stat"><strong>{quizVerified.length}</strong><span>quiz-verified skills</span></div>
@@ -145,12 +92,11 @@ const Dashboard = () => {
                             ))}
                         </ul>
                     </section>
-                    <ProjectsCard projects={projects} onChange={setProjects} />
                 </div>
                 <div className="coach-col-4" style={{ display: 'grid', gap: 20, alignContent: 'start' }}>
                     <section className="coach-card" aria-labelledby="skills-h">
                         <header><h2 id="skills-h">My skills</h2></header>
-                        {data.skills.length === 0 && data.verifiedSkills.length === 0 && <p className="coach-empty">Add skills on your <Link to="/profile">profile</Link> or run the <Link to="/coach/resume">resume analyzer</Link>.</p>}
+                        {data.skills.length === 0 && data.verifiedSkills.length === 0 && <p className="coach-empty">Add skills on your <Link to="/profile">profile</Link> or run the <Link to="/resume-checker">Resume ATS Checker</Link>.</p>}
                         <div className="coach-chips">
                             {data.verifiedSkills.map(item => <span key={item.skill} className={`coach-chip ${item.source === 'quiz' ? 'ok' : 'self'}`} title={item.source === 'quiz' ? `Passed quiz (${item.score}%)` : 'Self-assessed'}>{item.source === 'quiz' ? '✓ ' : ''}{item.skill}</span>)}
                             {data.skills.filter(skill => !data.verifiedSkills.some(item => item.skill.toLowerCase() === skill.toLowerCase())).map(skill => <span key={skill} className="coach-chip">{skill}</span>)}

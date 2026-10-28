@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button' 
 import { useNavigate } from 'react-router-dom' 
@@ -20,7 +18,6 @@ const AdminJobs = () => {
   }, [input]);
   return (
     <div className="app-page admin-page">
-      <Navbar />
       <div className='admin-content recruiter-list-content'>
         <div className="admin-page-toolbar">
           <div className="admin-page-title"><span className="admin-page-icon"><BriefcaseBusiness size={19} /></span><div><h1>Manage jobs</h1><p>Keep track of your openings and review applicants.</p></div></div>
@@ -28,7 +25,6 @@ const AdminJobs = () => {
         </div>
         <AdminJobsTable />
       </div>
-      <Footer />
     </div>
   )
 }

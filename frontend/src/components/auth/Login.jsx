@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
+import OpportunityLayout from '../shared/OpportunityLayout'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -46,8 +45,8 @@ const Login = ({ recruiterOnly = false }) => {
     }, [user, navigate]);
 
     return (
+        <OpportunityLayout breadcrumb={recruiterOnly ? 'Employer log in' : 'Log in'} recruiterMode={recruiterOnly}>
         <div className="app-page auth-page">
-            <Navbar />
             <main className="auth-layout">
                 <form onSubmit={submitHandler} className="auth-card login-card">
                         {recruiterOnly && <input type="hidden" name="role" value="recruiter" />}
@@ -67,8 +66,8 @@ const Login = ({ recruiterOnly = false }) => {
                         <span className="text-sm">{recruiterOnly ? 'Hiring with us for the first time?' : 'New to Rozgaar.com?'} <Link to={recruiterOnly ? '/employer/register' : '/signup'}>{recruiterOnly ? 'Create an employer account' : 'Create an account'}</Link></span>
                     </form>
             </main>
-            <Footer />
         </div>
+        </OpportunityLayout>
     );
 };
 

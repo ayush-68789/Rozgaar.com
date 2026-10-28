@@ -6,8 +6,7 @@ import axios from 'axios'
 import { APPLICATION_API_END_POINT, JOB_API_END_POINT } from '@/utils/constant'
 import { useApp } from '@/context/AppContext'
 import { toast } from 'react-toastify'
-import Navbar from '../components/shared/Navbar'
-import Footer from '../components/shared/Footer'
+import OpportunityLayout from '../components/shared/OpportunityLayout'
 import { motion } from 'framer-motion'
 import { formatSalary } from '@/utils/salary'
 import { Building2, MapPin, Users, CalendarDays, ExternalLink } from 'lucide-react'
@@ -70,8 +69,8 @@ const JobDescription = () => {
     }, [jobId, setSingleJob, user?._id]);
 
     return (
+        <OpportunityLayout activePage="Jobs" breadcrumb="Job details" searchPlaceholder="Search Jobs">
         <div className="app-page description-page">
-            <Navbar />
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -137,8 +136,8 @@ const JobDescription = () => {
                 </section>}
 
             </motion.div>
-            <Footer />
         </div>
+        </OpportunityLayout>
     )
 }
 

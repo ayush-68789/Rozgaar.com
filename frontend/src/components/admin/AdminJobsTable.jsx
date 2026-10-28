@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { Edit2, Eye, MoreHorizontal, Trash2, PowerOff, Power } from 'lucide-react'
+import { Edit2, MoreHorizontal, Trash2, PowerOff, Power } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -95,10 +95,6 @@ const AdminJobsTable = () => {
                                             <div onClick={() => navigate(`/admin/jobs/${job._id}/edit`)} className='flex items-center gap-2 w-fit cursor-pointer py-1'>
                                                 <Edit2 className='w-4' />
                                                 <span>Edit</span>
-                                            </div>
-                                            <div onClick={() => navigate(`/admin/jobs/${job._id}/applicants`)} className='flex items-center w-fit gap-2 cursor-pointer py-1'>
-                                                <Eye className='w-4' />
-                                                <span>Applicants</span>
                                             </div>
                                             <div onClick={() => toggleStatusHandler(job._id)} className='flex items-center w-fit gap-2 cursor-pointer py-1'>
                                                 {job?.isOpen !== false ? <PowerOff className='w-4 text-orange-500' /> : <Power className='w-4 text-green-500' />}

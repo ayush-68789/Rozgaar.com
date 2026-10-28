@@ -1,6 +1,4 @@
 import React, { useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -35,7 +33,6 @@ const CompanyCreate = () => {
     }
     return (
         <div className="app-page admin-page">
-            <Navbar />
             <div className='admin-content company-create-card'>
                 <div className='my-10'>
                     <h1 className='font-bold text-2xl'>Your Company Name</h1>
@@ -54,7 +51,6 @@ const CompanyCreate = () => {
                     <Button onClick={registerNewCompany}>Continue</Button>
                 </div>
             </div>
-            <Footer />
         </div>
     )
 }

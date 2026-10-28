@@ -54,7 +54,7 @@ const FitPanel = ({ jobId }) => {
                         <button type="button" className="coach-btn" onClick={buildPlan} disabled={busy}>
                             {busy ? 'Building your plan…' : planId ? 'Open my learning plan' : 'Build my learning plan'}
                         </button>
-                        <Link to={`/coach/resume?jobId=${jobId}`} className="coach-btn ghost">Check my resume for this job</Link>
+                        <Link to={`/resume-checker?jobId=${jobId}`} className="coach-btn ghost">Check my resume for this job</Link>
                     </div>
                 </>}
                 {fit.missing.length === 0 && fit.total > 0 && <p className="coach-notice">You cover every listed requirement. Polish your resume and apply.</p>}

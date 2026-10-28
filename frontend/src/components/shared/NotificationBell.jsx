@@ -3,8 +3,7 @@ import axios from 'axios'
 import { Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import * as constants from '@/utils/constant'
-const NOTIFICATION_API_END_POINT = constants.NOTIFICATION_API_END_POINT || `${(import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')}/api/v1/notification`
+import { NOTIFICATION_API_END_POINT } from '@/utils/constant'
 import '@/styles/coach.css'
 
 const timeAgo = date => {

@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -103,7 +101,6 @@ const PostJob = () => {
 
     return (
         <div className="app-page admin-page">
-            <Navbar />
             <div className='admin-form-layout recruiter-posting-layout'>
                 <button type="button" className="recruiter-back-link" onClick={() => navigate('/admin/jobs')}><ArrowLeft size={16} /> Back to jobs</button>
                 <form onSubmit = {submitHandler} className='admin-form-card recruiter-posting-card'>
@@ -256,7 +253,6 @@ const PostJob = () => {
                     }
                 </form>
             </div>
-            <Footer />
         </div>
     )
 }

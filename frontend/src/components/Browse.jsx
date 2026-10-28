@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react'
-import Navbar from './shared/Navbar'
-import Footer from './shared/Footer'
+import OpportunityLayout from './shared/OpportunityLayout'
 import JobCard from './JobCard'
 import { useApp } from '@/context/AppContext'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
@@ -16,8 +15,8 @@ const Browse = () => {
     }, [setSearchedQuery]);
 
     return (
+        <OpportunityLayout activePage="Jobs" breadcrumb="Search results" searchPlaceholder="Search Jobs" showFooter>
         <div className="app-page browse-page">
-            <Navbar />
             <div className='browse-layout'>
                 <h1 className='font-bold text-xl my-10'>Search Results ({allJobs.length})</h1>
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
@@ -28,8 +27,8 @@ const Browse = () => {
                     }
                 </div>
             </div>
-            <Footer />
         </div>
+        </OpportunityLayout>
     )
 }
 

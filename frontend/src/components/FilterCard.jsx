@@ -14,11 +14,15 @@ const filterData = [
         filterType: "Salary",
         array: ["₹0–40,000 / month", "₹40,000–1,00,000 / month", "₹1,00,000–5,00,000 / month", "₹5,00,000+ / month"]
     },
+    {
+        filterType: "Experience",
+        array: ["Fresher", "0–1 years", "1–3 years", "3–5 years", "5+ years"]
+    },
 ]
 
 const FilterCard = () => {
     const { jobFilters, setJobFilters } = useApp();
-    const filterKeys = { Location: 'location', Industry: 'industry', Salary: 'salary' };
+    const filterKeys = { Location: 'location', Industry: 'industry', Salary: 'salary', Experience: 'experience' };
     const selectedValues = value => Array.isArray(value) ? value : value ? [value] : [];
 
     return (
@@ -31,18 +35,21 @@ const FilterCard = () => {
                     return <div key={data.filterType}>
                             <div className='filter-card-section-heading flex items-center justify-between mt-3'>
                                 <h2 className='font-bold text-base'>{data.filterType}</h2>
-                                {selectedValues(jobFilters[filterKey]).length > 0 && <button type='button' className='filter-card-clear text-xs text-blue-600' onClick={() => setJobFilters(current => ({ ...current, [filterKey]: [] }))}>Clear</button>}
+                                {selectedValues(jobFilters[filterKey]).length > 0 && <button type='button' className='filter-card-clear text-xs text-blue-600' onClick={() => setJobFilters(current => ({ ...current, [filterKey]: data.filterType === 'Experience' ? '' : [] }))}>Clear</button>}
                             </div>
                             <div>
                             {
                                 data.array.map((item, idx) => {
                                     const itemId = `id${index}-${idx}`
-                                    const checked = selectedValues(jobFilters[filterKey]).includes(item);
+                                    const experienceValues = { 'Fresher': 'fresher', '0–1 years': '0-1', '1–3 years': '1-3', '3–5 years': '3-5', '5+ years': '5+' };
+                                    const filterValue = data.filterType === 'Experience' ? experienceValues[item] : item;
+                                    const checked = selectedValues(jobFilters[filterKey]).includes(filterValue);
                                     return (
                                         <div key={idx} className='filter-card-option flex items-center space-x-2 my-2'>
                                             <input className='filter-checkbox' type='checkbox' checked={checked} onChange={() => setJobFilters(current => {
                                                 const values = selectedValues(current[filterKey]);
-                                                return { ...current, [filterKey]: checked ? values.filter(value => value !== item) : [...values, item] };
+                                                if (data.filterType === 'Experience') return { ...current, [filterKey]: checked ? '' : filterValue };
+                                                return { ...current, [filterKey]: checked ? values.filter(value => value !== filterValue) : [...values, filterValue] };
                                             })} id={itemId} />
                                             <Label htmlFor={itemId}>{item}</Label>
                                         </div>

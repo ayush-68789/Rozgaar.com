@@ -1,23 +1,10 @@
-import { NavLink } from 'react-router-dom'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
+import OpportunityLayout from '../shared/OpportunityLayout'
 import '@/styles/coach.css'
 
-const tabs = [
-    ['/coach', 'Dashboard', true],
-    ['/coach/resume', 'Resume analyzer'],
-    ['/coach/news', 'Tech news'],
-]
-
 const CoachShell = ({ title, subtitle, actions, children }) => (
+    <OpportunityLayout activePage={title === 'Tech news' ? 'Tech News' : 'Career Coach'} breadcrumb={title}>
     <div className="coach-page">
-        <Navbar />
         <main className="coach-main">
-            <nav className="coach-tabs" aria-label="Career coach sections">
-                {tabs.map(([to, label, end]) => (
-                    <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive ? 'active' : '')}>{label}</NavLink>
-                ))}
-            </nav>
             <div className="coach-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h1>{title}</h1>
@@ -27,8 +14,8 @@ const CoachShell = ({ title, subtitle, actions, children }) => (
             </div>
             {children}
         </main>
-        <Footer />
     </div>
+    </OpportunityLayout>
 )
 
 export default CoachShell

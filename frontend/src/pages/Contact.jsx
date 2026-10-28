@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
-import Navbar from '../components/shared/Navbar'
-import Footer from '../components/shared/Footer'
+import OpportunityLayout from '../components/shared/OpportunityLayout'
 
 const Contact = () => {
     const [sent, setSent] = useState(false)
@@ -16,8 +15,8 @@ const Contact = () => {
     }
 
     return (
+        <OpportunityLayout activePage="Contact Us" breadcrumb="Contact" showFooter>
         <div className="job-portal-home info-page">
-            <Navbar />
             <main className="info-page-main contact-page-main">
                 <section className="contact-intro">
                     <h1>Contact us</h1>
@@ -38,8 +37,8 @@ const Contact = () => {
                     <small>Your email app will open with your message ready to send.</small>
                 </form>
             </main>
-            <Footer />
         </div>
+        </OpportunityLayout>
     )
 }
 

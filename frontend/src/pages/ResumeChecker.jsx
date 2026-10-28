@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import CoachShell from '@/components/coach/CoachShell'
+import { BriefcaseBusiness, FileText, LoaderCircle, Sparkles } from 'lucide-react'
+import OpportunityLayout from '@/components/shared/OpportunityLayout'
 import StudentRoute from '@/components/coach/StudentRoute'
 import { useApp } from '@/context/AppContext'
 import { JOB_API_END_POINT } from '@/utils/constant'
@@ -57,20 +58,38 @@ const Analyzer = () => {
     const scoreColor = analysis ? (analysis.score >= 70 ? '#16803c' : analysis.score >= 45 ? '#b45309' : '#b42318') : '#1769d2'
 
     return (
-        <CoachShell title="Resume analyzer" subtitle="We read the resume stored on your profile, score it, and tell you exactly what to fix. Optionally compare it against a specific job.">
-            <div className="coach-card" style={{ marginTop: 20 }}>
-                {!hasResume && <p className="coach-note" style={{ marginTop: 0 }}>You haven’t uploaded a resume yet. Add one on your <Link to="/profile">profile</Link> (PDF or DOCX), then come back.</p>}
-                <label htmlFor="job" className="coach-muted">Compare with a job (optional)</label>
-                <select id="job" className="coach-select" value={jobId} onChange={e => setJobId(e.target.value)}>
-                    <option value="">General review — no specific job</option>
-                    {jobs.map(job => <option key={job._id} value={job._id}>{job.title} — {job.company?.name || 'Company'}</option>)}
-                </select>
-                <div className="coach-row" style={{ marginTop: 14 }}>
-                    <button type="button" className="coach-btn" onClick={analyze} disabled={busy || !hasResume}>{busy ? 'Analyzing…' : 'Analyze my resume'}</button>
-                    {user?.profile?.resumeName && <span className="coach-muted">{user.profile.resumeName}</span>}
+        <OpportunityLayout activePage="Resume ATS Checker" breadcrumb="Resume ATS Checker">
+        <div className="coach-page resume-checker-page">
+            <main className="coach-main">
+                <div className="coach-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h1>Resume ATS Checker</h1>
+                        <p className="coach-sub">Check your resume for ATS basics, get focused fixes, or compare it against a specific job.</p>
+                    </div>
+                    <Link to="/profile" className="coach-btn ghost">My profile</Link>
+                </div>
+            <section className="coach-card resume-checker-form-card" aria-labelledby="resume-checker-form-title">
+                <div className="resume-checker-form-heading">
+                    <span><BriefcaseBusiness size={19} /></span>
+                    <div><h2 id="resume-checker-form-title">Tailor your resume for a role</h2><p>Choose a job for a targeted review, or run a general ATS check.</p></div>
+                </div>
+                {!hasResume && <p className="coach-note resume-checker-missing">You haven’t uploaded a resume yet. Add one on your <Link to="/profile">profile</Link> (PDF or DOCX) to get started.</p>}
+                <div className="resume-checker-field">
+                    <label htmlFor="job">Compare with a job <span>Optional</span></label>
+                    <select id="job" className="coach-select" value={jobId} onChange={e => setJobId(e.target.value)}>
+                        <option value="">General review — no specific job</option>
+                        {jobs.map(job => <option key={job._id} value={job._id}>{job.title} — {job.company?.name || 'Company'}</option>)}
+                    </select>
+                    <small>Your resume will be checked against the role requirements and keywords.</small>
+                </div>
+                <div className="resume-checker-form-footer">
+                    <button type="button" className="coach-btn resume-checker-submit" onClick={analyze} disabled={busy || !hasResume}>
+                        {busy ? <><LoaderCircle size={16} className="resume-checker-spinner" /> Analyzing resume…</> : <><Sparkles size={16} /> Analyze my resume</>}
+                    </button>
+                    {user?.profile?.resumeName && <span className="resume-checker-file"><FileText size={15} /><span>{user.profile.resumeName}</span></span>}
                 </div>
                 {error && <p className="coach-note" role="alert">{error}</p>}
-            </div>
+            </section>
 
             {analysis && <div style={{ display: 'grid', gap: 16, marginTop: 20 }}>
                 <section className="coach-card">
@@ -95,10 +114,12 @@ const Analyzer = () => {
                 </section>}
                 {result.job && <div><Link to={`/description/${result.job._id}`} className="coach-btn ghost">Back to the job</Link></div>}
             </div>}
-        </CoachShell>
+            </main>
+        </div>
+        </OpportunityLayout>
     )
 }
 
-const ResumeAnalyzer = () => <StudentRoute><Analyzer /></StudentRoute>
+const ResumeChecker = () => <StudentRoute><Analyzer /></StudentRoute>
 
-export default ResumeAnalyzer
+export default ResumeChecker

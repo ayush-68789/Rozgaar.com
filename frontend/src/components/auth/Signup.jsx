@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
+import OpportunityLayout from '../shared/OpportunityLayout'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
@@ -76,8 +75,8 @@ const Signup = ({ recruiterOnly = false }) => {
     }, [user, navigate]);
 
     return (
+        <OpportunityLayout breadcrumb={recruiterOnly ? 'Employer registration' : 'Create account'} recruiterMode={recruiterOnly}>
         <div className="app-page auth-page">
-            <Navbar />
             <main className="auth-layout signup-layout">
                 <div className="signup-content">
                         <div className="signup-page-heading"><h1>{recruiterOnly ? 'Create an employer account' : 'Create account'}</h1><p>{recruiterOnly ? 'Start building your team on Rozgaar.com.' : 'Join Rozgaar.com and get started.'}</p></div>
@@ -99,8 +98,8 @@ const Signup = ({ recruiterOnly = false }) => {
                         </form>
                     </div>
             </main>
-            <Footer />
         </div>
+        </OpportunityLayout>
     );
 };
 

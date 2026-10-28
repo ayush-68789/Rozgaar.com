@@ -1,32 +1,23 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useApp } from '@/context/AppContext'
-import { ArrowRight, BarChart3, PieChart, Settings2, UsersRound, Home, Building2, Sparkles, GraduationCap, BriefcaseBusiness, Rocket, Database } from 'lucide-react'
+import { BriefcaseBusiness, Building2, FileCheck2, FileText, Newspaper, Sparkles } from 'lucide-react'
 
 const categories = [
-    { name: 'Remote', query: 'Remote', icon: Home },
-    { name: 'MNC', query: 'MNC', icon: Building2 },
-    { name: 'Fresher', query: 'Fresher', icon: GraduationCap },
-    { name: 'Project Manager', query: 'Project Manager', icon: Sparkles },
-    { name: 'Supply Chain', query: 'Supply Chain', icon: BriefcaseBusiness },
-    { name: 'Marketing', query: 'Marketing', icon: BarChart3 },
-    { name: 'Engineering', query: 'Engineering', icon: Settings2 },
-    { name: 'Analytics', query: 'Analytics', icon: PieChart },
-    { name: 'Startup', query: 'Startup', icon: Rocket },
-    { name: 'Data Science', query: 'Data Science', icon: Database },
-    { name: 'Internship', query: 'Internship', icon: UsersRound },
+    { name: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
+    { name: 'Companies', to: '/companies', icon: Building2 },
+    { name: 'My Applications', to: '/applications', icon: FileText },
+    { name: 'Resume ATS Checker', to: '/resume-checker', icon: FileCheck2 },
+    { name: 'Career Coach', to: '/coach', icon: Sparkles },
+    { name: 'Tech News', to: '/coach/news', icon: Newspaper },
 ]
 
 const CategoryCarousel = () => {
-    const { setSearchedQuery, setJobFilters } = useApp();
-    const navigate = useNavigate();
-    const searchJobHandler = (query) => { setSearchedQuery(query); setJobFilters({ location: '', industry: '', salary: '', experience: '' }); navigate('/jobs'); }
+    const navigate = useNavigate()
 
-    return <section className="home-category-section">
-        <div className="home-category-inner">
-            <div className="category-heading"><h2>Explore jobs by category</h2></div>
-            <div className="category-pill-list">{categories.map(({ name, query, icon: Icon }) => <button className="category-pill" key={name} onClick={() => searchJobHandler(query)}><Icon size={16} />{name}<ArrowRight size={13} /></button>)}</div>
-        </div>
+    return <section className="home-category-section unstop-category-section" aria-label="Career categories">
+        <div className="unstop-category-track">{categories.map(({ name, to, icon: Icon }, index) => <button className={`unstop-category-tile color-${index % 7}`} key={name} type="button" onClick={() => navigate(to)}>
+            <strong>{name}</strong><span><Icon size={37} strokeWidth={1.8} /></span>
+        </button>)}</div>
     </section>
 }
 

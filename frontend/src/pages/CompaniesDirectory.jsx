@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, BriefcaseBusiness, Search } from 'lucide-react'
-import Navbar from '../components/shared/Navbar'
-import Footer from '../components/shared/Footer'
+import OpportunityLayout from '../components/shared/OpportunityLayout'
 import { useApp } from '@/context/AppContext'
 import { JOB_API_END_POINT } from '@/utils/constant'
 
@@ -52,8 +51,8 @@ const CompaniesDirectory = () => {
     }
 
     return (
+        <OpportunityLayout activePage="Companies" breadcrumb="Companies" searchPlaceholder="Search companies" showFooter>
         <div className="app-page companies-directory-page">
-            <Navbar />
             <main className="companies-directory-main">
                 <header className="companies-directory-heading">
                     <div><h1>Explore companies</h1><p>Discover companies and see who is hiring right now.</p></div>
@@ -69,8 +68,8 @@ const CompaniesDirectory = () => {
                     </button>)}
                 </div> : <div className="companies-directory-empty"><Building2 size={22} /><strong>{search ? 'No companies match that search.' : 'No companies to show yet.'}</strong><span>Companies will appear here when they have posted a job.</span></div>}
             </main>
-            <Footer />
         </div>
+        </OpportunityLayout>
     )
 }
 

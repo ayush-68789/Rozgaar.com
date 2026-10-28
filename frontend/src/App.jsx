@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import Login from './components/auth/Login'
 import Signup from './components/auth/Signup'
 import Home from './components/Home'
@@ -19,7 +19,7 @@ import Applications from './pages/Applications'
 import CompaniesDirectory from './pages/CompaniesDirectory'
 import CoachDashboard from './pages/coach/CoachDashboard'
 import PlanView from './pages/coach/PlanView'
-import ResumeAnalyzer from './pages/coach/ResumeAnalyzer'
+import ResumeChecker from './pages/ResumeChecker'
 import TechNews from './pages/coach/TechNews'
 
 
@@ -79,7 +79,8 @@ const appRouter = createBrowserRouter([
   // AI career coach (Solvi) — candidate accounts only
   { path: '/coach', element: <CoachDashboard /> },
   { path: '/coach/plan/:id', element: <PlanView /> },
-  { path: '/coach/resume', element: <ResumeAnalyzer /> },
+  { path: '/resume-checker', element: <ResumeChecker /> },
+  { path: '/coach/resume', element: <Navigate to="/resume-checker" replace /> },
   { path: '/coach/news', element: <TechNews /> },
   // admin ke liye yha se start hoga
   {
@@ -97,6 +98,10 @@ const appRouter = createBrowserRouter([
   {
     path:"/admin/jobs",
     element:<ProtectedRoute><AdminJobs/></ProtectedRoute> 
+  },
+  {
+    path:"/admin/applicants",
+    element:<ProtectedRoute><Applicants/></ProtectedRoute>
   },
   {
     path:"/admin/jobs/create",

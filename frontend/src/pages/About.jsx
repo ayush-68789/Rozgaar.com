@@ -1,12 +1,11 @@
 import React from 'react'
 import { ArrowRight, BriefcaseBusiness, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import Navbar from '../components/shared/Navbar'
-import Footer from '../components/shared/Footer'
+import OpportunityLayout from '../components/shared/OpportunityLayout'
 
 const About = () => (
+    <OpportunityLayout breadcrumb="About" showFooter>
     <div className="job-portal-home info-page">
-        <Navbar />
         <main className="info-page-main">
             <section className="info-hero">
                 <h1>Helping people find work that moves them forward.</h1>
@@ -18,8 +17,8 @@ const About = () => (
                 <article><span className="info-value-icon"><Users size={21} /></span><h2>Connections that matter</h2><p>We help candidates present their skills and help employers find people ready to make an impact.</p></article>
             </section>
         </main>
-        <Footer />
     </div>
+    </OpportunityLayout>
 )
 
 export default About

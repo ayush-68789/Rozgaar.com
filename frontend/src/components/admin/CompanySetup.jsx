@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import Navbar from '../shared/Navbar'
-import Footer from '../shared/Footer'
 import { Button } from '../ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building2, Globe2, ImagePlus, Loader2, MapPin, Save } from 'lucide-react'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import axios from 'axios'
@@ -22,6 +20,8 @@ const CompanySetup = () => {
         location: "",
         file: null
     });
+    const [saving, setSaving] = useState(false);
+    const [logoPreview, setLogoPreview] = useState('');
     const { singleCompany } = useApp();
     const navigate = useNavigate();
 
@@ -45,6 +45,7 @@ const CompanySetup = () => {
             formData.append("file", input.file);
         }
         try {
+            setSaving(true);
             const res = await axios.put(`${COMPANY_API_END_POINT}/update/${params.id}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -58,6 +59,8 @@ const CompanySetup = () => {
         } catch (error) {
             console.log(error);
             toast.error(error.response?.data?.message || "An error occurred");
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -67,72 +70,51 @@ const CompanySetup = () => {
             description: singleCompany?.description || "",
             website: singleCompany?.website || "",
             location: singleCompany?.location || "",
-            file: singleCompany?.file || null
+            file: null
         })
     },[singleCompany]);
 
+    useEffect(() => {
+        if (!input.file) {
+            setLogoPreview('');
+            return;
+        }
+        const previewUrl = URL.createObjectURL(input.file);
+        setLogoPreview(previewUrl);
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [input.file]);
+
     return (
         <div className="app-page admin-page">
-            <Navbar />
-            <div className='admin-form-layout'>
-                <form onSubmit={submitHandler} className="admin-form-card">
-                    <div className='flex items-center gap-5 p-8'>
-                        <Button onClick={() => navigate("/admin/companies")} variant="outline" className="flex items-center gap-2 text-gray-500 font-semibold">
-                            <ArrowLeft />
-                            <span>Back</span>
-                        </Button>
-                        <h1 className='font-bold text-xl'>Company Setup</h1>
+            <div className="company-setup-layout">
+                <form onSubmit={submitHandler} className="company-setup-card">
+                    <header className="company-setup-heading">
+                        <button type="button" onClick={() => navigate("/admin/companies")} className="company-setup-back"><ArrowLeft size={17} /> Back to companies</button>
+                        <div className="company-setup-title-row"><span className="company-setup-icon"><Building2 size={21} /></span><div><h1>Company setup</h1><p>Keep your company profile current so candidates know who they’ll be applying to.</p></div></div>
+                    </header>
+                    <div className="company-setup-body">
+                        <section className="company-setup-fields">
+                            <div className="company-setup-section-heading"><h2>Company details</h2><p>These details appear on your job listings.</p></div>
+                            <div className="company-setup-grid">
+                                <div className="company-setup-field"><Label htmlFor="company-name">Company name</Label><Input id="company-name" type="text" name="name" value={input.name} onChange={changeEventHandler} placeholder="e.g. Acme Technologies" required /></div>
+                                <div className="company-setup-field"><Label htmlFor="company-website">Website <span>(optional)</span></Label><div className="company-setup-input-icon"><Globe2 size={17} /><Input id="company-website" type="url" name="website" value={input.website} onChange={changeEventHandler} placeholder="https://company.com" /></div></div>
+                                <div className="company-setup-field"><Label htmlFor="company-location">Location</Label><div className="company-setup-input-icon"><MapPin size={17} /><Input id="company-location" type="text" name="location" value={input.location} onChange={changeEventHandler} placeholder="City, Country or Remote" /></div></div>
+                                <div className="company-setup-field company-setup-field-wide"><Label htmlFor="company-description">Company description</Label><textarea id="company-description" name="description" value={input.description} onChange={changeEventHandler} placeholder="Tell candidates what your company does and what makes it a great place to work." rows={4} /></div>
+                            </div>
+                        </section>
+                        <section className="company-logo-section">
+                            <div><h2>Company logo</h2><p>Use a clear square image for the best results.</p></div>
+                            <div className="company-logo-upload-row">
+                                <div className="company-logo-preview">{logoPreview || singleCompany?.logo ? <img src={logoPreview || singleCompany.logo} alt={`${input.name || singleCompany.name} logo`} /> : <Building2 size={25} />}</div>
+                                <div className="company-logo-upload-copy"><strong>{input.file?.name || (singleCompany?.logo ? 'Current logo' : 'Add a company logo')}</strong><span>PNG, JPG or WEBP</span></div>
+                                <label htmlFor="company-logo" className="company-logo-upload-button"><ImagePlus size={16} /> Choose image</label>
+                                <Input id="company-logo" className="company-logo-file-input" type="file" accept="image/*" onChange={changeFileHandler} />
+                            </div>
+                        </section>
                     </div>
-                    <div className='grid grid-cols-2 gap-4'>
-                        <div>
-                            <Label>Company Name</Label>
-                            <Input
-                                type="text"
-                                name="name"
-                                value={input.name}
-                                onChange={changeEventHandler}
-                            />
-                        </div>
-                        <div>
-                            <Label>Description</Label>
-                            <Input
-                                type="text"
-                                name="description"
-                                value={input.description}
-                                onChange={changeEventHandler}
-                            />
-                        </div>
-                        <div>
-                            <Label>Website (optional)</Label>
-                            <Input
-                                type="text"
-                                name="website"
-                                value={input.website}
-                                onChange={changeEventHandler}
-                            />
-                        </div>
-                        <div>
-                            <Label>Location</Label>
-                            <Input
-                                type="text"
-                                name="location"
-                                value={input.location}
-                                onChange={changeEventHandler}
-                            />
-                        </div>
-                        <div>
-                            <Label>Logo</Label>
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={changeFileHandler}
-                            />
-                        </div>
-                    </div>
-                    <Button type="submit" className="w-full my-4">Update</Button>
+                    <footer className="company-setup-actions"><span>Changes will update your company profile.</span><Button type="submit" disabled={saving || !input.name.trim()} className="company-setup-save">{saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><Save size={16} /> Save changes</>}</Button></footer>
                 </form>
             </div>
-            <Footer />
         </div>
     )
 }

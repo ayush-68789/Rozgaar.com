@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
-import { Avatar, AvatarImage } from '../ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { Edit2, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Building2, Edit2, MapPin, MoreHorizontal, Trash2 } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -36,49 +34,22 @@ const CompaniesTable = () => {
     };
 
     return (
-        <div>
-            <Table>
-                <TableCaption>A list of your recent registered companies</TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Logo</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {
-                        filterCompany?.map((company) => (
-                            <TableRow key={company._id}>
-                                <TableCell>
-                                    <Avatar className="company-logo-avatar">
-                                        <AvatarImage src={company.logo} />
-                                    </Avatar>
-                                </TableCell>
-                                <TableCell>{company.name}</TableCell>
-                                <TableCell>{company.createdAt.split("T")[0]}</TableCell>
-                                <TableCell className="text-right cursor-pointer">
-                                    <Popover>
-                                        <PopoverTrigger><MoreHorizontal /></PopoverTrigger>
-                                        <PopoverContent className="w-36">
-                                            <div onClick={() => navigate(`/admin/companies/${company._id}`)} className='flex items-center gap-2 w-fit cursor-pointer py-1'>
-                                                <Edit2 className='w-4' />
-                                                <span>Edit</span>
-                                            </div>
-                                            <div onClick={() => deleteCompanyHandler(company._id)} className='flex items-center gap-2 w-fit cursor-pointer py-1 text-red-500'>
-                                                <Trash2 className='w-4' />
-                                                <span>Delete</span>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    }
-                </TableBody>
-            </Table>
-        </div>
+        <section className="company-directory-card" aria-label="Your companies">
+            <div className="company-directory-list-heading"><span>COMPANY</span><span>ADDED</span><span aria-label="Actions" /></div>
+            {filterCompany?.length ? filterCompany.map(company => <article className="company-directory-row" key={company._id}>
+                <div className="company-directory-logo">{company.logo ? <img src={company.logo} alt={`${company.name} logo`} /> : <Building2 size={21} />}</div>
+                <div className="company-directory-info"><h2>{company.name}</h2><p><MapPin size={13} />{company.location || 'Location not added'}</p>{company.description && <small>{company.description}</small>}</div>
+                <time className="company-directory-date" dateTime={company.createdAt || undefined}>{company.createdAt ? new Date(company.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</time>
+                <div className="company-directory-action"><Popover>
+                    <PopoverTrigger asChild><button type="button" aria-label={`Actions for ${company.name}`} className="company-directory-more"><MoreHorizontal size={19} /></button></PopoverTrigger>
+                    <PopoverContent align="end" className="w-36 company-directory-menu">
+                        <button type="button" onClick={() => navigate(`/admin/companies/${company._id}`)}><Edit2 size={15} /><span>Edit details</span></button>
+                        <button type="button" onClick={() => deleteCompanyHandler(company._id)} className="is-danger"><Trash2 size={15} /><span>Delete company</span></button>
+                    </PopoverContent>
+                </Popover></div>
+            </article>) : <div className="company-directory-empty"><Building2 size={25} /><strong>{searchCompanyByText ? 'No companies found' : 'No companies yet'}</strong><span>{searchCompanyByText ? 'Try a different company name.' : 'Add a company to start managing your hiring profile.'}</span></div>}
+            <div className="company-directory-footer">{filterCompany?.length || 0} {filterCompany?.length === 1 ? 'company' : 'companies'} in your workspace</div>
+        </section>
     )
 }
 
