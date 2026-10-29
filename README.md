@@ -1,6 +1,6 @@
 # Rozgaar.com
 
-Rozgaar.com is a full-stack job portal for candidates and recruiters, with **Solvi**, an optional AI-assisted career coach. Candidates can discover and apply for jobs, build a profile, track applications, and work through skill plans. Recruiters can manage companies and job listings and review applicants.
+Rozgaar.com is a full-stack job portal for candidates and recruiters, with an optional AI-assisted career coach. Candidates can discover and apply for jobs, build a profile, track applications, and work through skill plans. Recruiters can manage companies and job listings and review applicants.
 
 The application is a React/Vite single-page app backed by an Express API and MongoDB. Authentication uses an HTTP-only cookie. File uploads use Cloudinary; optional coaching features use Groq.
 
@@ -23,7 +23,7 @@ The application is a React/Vite single-page app backed by an Express API and Mon
 - Create a candidate profile with skills, resume, education, experience, projects, certificates, and achievements.
 - Browse and search job listings, view job details, apply once per job, and follow application status.
 - See skill fit against job requirements and receive job recommendations.
-- Use Solvi to analyze a career goal, create a learning plan for a role or job, take weekly quizzes, and track demonstrated skills.
+- Use the career coach to analyze a career goal, create a learning plan for a role or job, take weekly quizzes, and track demonstrated skills.
 - Analyze a stored resume, maintain portfolio projects, and browse a technology news feed.
 - Receive in-app notifications for application events and status changes.
 
