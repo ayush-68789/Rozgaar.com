@@ -1,8 +1,8 @@
 # Rozgaar.com
 
-Rozgaar.com is a full-stack job portal for candidates and recruiters, with an optional AI-assisted career coach. Candidates can discover and apply for jobs, build a profile, track applications, and work through skill plans. Recruiters can manage companies and job listings and review applicants.
+Rozgaar.com is a full-stack employment platform for candidates and recruiters, with an optional AI-assisted career coach. Candidates can discover and apply for jobs, maintain a professional profile, track applications, and follow tailored skill-development plans. Recruiters can manage company profiles and job listings, then review and manage applicants.
 
-The application is a React/Vite single-page app backed by an Express API and MongoDB. Authentication uses an HTTP-only cookie. File uploads use Cloudinary; optional coaching features use Groq.
+The platform consists of a React single-page application and an Express API backed by MongoDB. Sessions use JWTs stored in HTTP-only cookies. Profile and resume uploads are handled by Cloudinary. Optional coaching features use Groq and include built-in fallbacks when AI is unavailable.
 
 ## Contents
 
@@ -20,18 +20,18 @@ The application is a React/Vite single-page app backed by an Express API and Mon
 
 ### Candidates
 
-- Create a candidate profile with skills, resume, education, experience, projects, certificates, and achievements.
-- Browse and search job listings, view job details, apply once per job, and follow application status.
-- See skill fit against job requirements and receive job recommendations.
-- Use the career coach to analyze a career goal, create a learning plan for a role or job, take weekly quizzes, and track demonstrated skills.
-- Analyze a stored resume, maintain portfolio projects, and browse a technology news feed.
-- Receive in-app notifications for application events and status changes.
+- Build a profile with skills, a resume, education, experience, projects, certificates, and achievements.
+- Browse and search job listings, review job details, submit one application per job, and track application status.
+- Review skill alignment with job requirements and receive job recommendations.
+- Use the career coach to analyze career goals, create role- or job-specific learning plans, complete weekly quizzes, and record demonstrated skills.
+- Analyze a stored resume, manage portfolio projects, and browse technology news.
+- Receive in-app notifications about application activity and status changes.
 
 ### Recruiters
 
-- Create and manage company profiles and job listings.
-- Review applicants and their skill fit, shortlist applicants, update application status, and remove applications.
-- Job openings are enforced; filled listings close automatically.
+- Create and maintain company profiles and job listings.
+- Review applicants and skill alignment, shortlist candidates, update application statuses, and manage applications.
+- Enforce the number of available positions and automatically close listings when all positions are filled.
 
 ## Technology
 
@@ -40,14 +40,14 @@ The application is a React/Vite single-page app backed by an Express API and Mon
 | Frontend | React 18, Vite, React Router, Axios, Tailwind CSS |
 | API | Node.js, Express 4 |
 | Data | MongoDB with Mongoose |
-| Authentication | JWT in an HTTP-only cookie; bcrypt password hashing |
-| Uploads | Cloudinary; Multer handles incoming multipart files |
-| Career coach | Optional Groq chat completions; built-in template/rule-based fallbacks |
+| Authentication | JWT sessions in HTTP-only cookies; bcrypt password hashing |
+| File storage | Cloudinary; Multer processes multipart uploads |
+| Career coaching | Optional Groq chat completions with built-in template and rule-based fallbacks |
 | Hosting configuration | Render API (`render.yaml`), Vercel frontend (`frontend/vercel.json`) |
 
 ## Run locally
 
-Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A Groq API key is optional.
+Requirements: Node.js 20.19 or newer, npm, and a MongoDB database. Cloudinary credentials are required for image and resume uploads. A Groq API key is optional.
 
 1. Clone the repository and create environment files from the examples:
 
@@ -60,7 +60,7 @@ Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A G
 
    On Windows PowerShell, use `Copy-Item backend/.env.example backend/.env` and `Copy-Item frontend/.env.example frontend/.env`.
 
-2. Fill in `backend/.env` as described below. Set the frontend API URL to `http://localhost:3000` in `frontend/.env`.
+2. Configure `backend/.env` as described below. In `frontend/.env`, set `VITE_API_URL=http://localhost:3000`.
 
 3. Start the API:
 
@@ -70,7 +70,7 @@ Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A G
    npm run dev
    ```
 
-   The API listens on `http://localhost:3000` by default. It connects to MongoDB before accepting requests. The health check is `http://localhost:3000/health`.
+   By default, the API listens on `http://localhost:3000`. It connects to MongoDB before accepting requests. The health endpoint is available at `http://localhost:3000/health`.
 
 4. In another terminal, start the web app:
 
@@ -80,7 +80,7 @@ Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A G
    npm run dev
    ```
 
-   Vite prints the local URL (normally `http://localhost:5173`).
+   Vite prints the local development URL (typically `http://localhost:5173`).
 
 ## Environment variables
 
@@ -106,27 +106,27 @@ Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A G
 | --- | --- | --- |
 | `VITE_API_URL` | Recommended | Backend origin without a trailing slash, e.g. `http://localhost:3000`. Defaults to `http://localhost:3000`. |
 
-Never commit `.env` files or put server-side secrets in frontend variables. Vite exposes `VITE_*` values to the browser bundle.
+Do not commit `.env` files or place server-side secrets in frontend variables. Vite embeds `VITE_*` values in the browser bundle, where users can inspect them.
 
 ## Deploy
 
-The repository includes a Render blueprint for the API and a Vercel rewrite for React Router deep links.
+The repository includes a Render blueprint for the API and a Vercel rewrite for client-side React Router paths.
 
 ### API on Render
 
-1. Create a Render web service from `render.yaml` (or configure a Node service with root directory `backend`).
-2. Use `npm install` for build and `npm start` for start. The health check path is `/health`.
-3. Set the secret environment values listed in the backend table. `FRONTEND_URL` must exactly match the deployed frontend origin; add any trusted preview origins to `FRONTEND_URLS`.
-4. Set `NODE_ENV=production`. Render sets `PORT` automatically.
+1. Create a Render web service from `render.yaml`, or configure a Node service with `backend` as its root directory.
+2. Set the build command to `npm install`, the start command to `npm start`, and the health check path to `/health`.
+3. Configure the backend environment variables listed above. Set `FRONTEND_URL` to the exact deployed frontend origin; add trusted preview origins to `FRONTEND_URLS` if needed.
+4. Set `NODE_ENV=production`. Render provides the `PORT` value.
 
 ### Frontend on Vercel
 
 1. Import the repository and set the project root to `frontend`.
-2. Configure the Vite build (`npm run build`) and output directory (`dist`).
-3. Set `VITE_API_URL` to the deployed API origin, without a trailing slash.
-4. Deploy, then set that exact Vercel origin in the API's `FRONTEND_URL`.
+2. Set the build command to `npm run build` and the output directory to `dist`.
+3. Set `VITE_API_URL` to the deployed API origin without a trailing slash.
+4. Deploy the frontend, then add its exact origin to the API's `FRONTEND_URL`.
 
-Production login depends on HTTPS because the session cookie is `Secure` and uses `SameSite=None`. Confirm both deployments use HTTPS and that browser requests allow credentials.
+Production authentication requires HTTPS because the session cookie is `Secure` and uses `SameSite=None`. Both deployments must use HTTPS, and browser requests must include credentials.
 
 ## Project structure
 
@@ -166,16 +166,16 @@ render.yaml          Render API service blueprint
 | `frontend` | `npm run preview` | Serve the built frontend locally. |
 | `frontend` | `npm run lint` | Run ESLint. |
 
-## Security and data notes
+## Security and data considerations
 
 - API sessions are signed JWTs in HTTP-only cookies; passwords are hashed with bcrypt.
 - Production cookies require HTTPS. Credentialed CORS permits only configured frontend origins.
-- Login and registration are limited to 20 requests per 15 minutes per client; API routes have a 600-request per 15-minute limit. AI endpoints have a 40-request per-hour limit.
-- Candidate resumes are stored as Cloudinary raw assets. Configure Cloudinary and access policies with this in mind; the current upload model does not make resume assets private.
-- Applications have a unique `(job, applicant)` index. Existing databases with duplicate application records may need those duplicates cleaned up before MongoDB can create the index.
-- The frontend and API are separate deployments; CORS and `VITE_API_URL` must point to the same intended environment.
+- Login and registration are limited to 20 requests per client per 15 minutes. API routes are limited to 600 requests per client per 15 minutes; AI-backed coach endpoints are limited to 40 requests per hour.
+- Candidate resumes are stored as Cloudinary raw assets. Review the account's access settings; the current upload flow does not make resume assets private.
+- Applications have a unique `(job, applicant)` index. Existing duplicate records must be removed before MongoDB can create this index.
+- The frontend and API are deployed separately. Configure CORS and `VITE_API_URL` for the same environment.
 
 ## Contributing
 
-Open an issue to discuss a substantial change, then submit a pull request with a clear summary and verification steps. Keep credentials and personal data out of commits.
+For substantial changes, open an issue for discussion before submitting a pull request. Include a concise summary and relevant verification steps. Never include credentials or personal data in a commit.
 

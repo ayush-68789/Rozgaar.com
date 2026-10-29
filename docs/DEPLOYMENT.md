@@ -1,8 +1,10 @@
 # Deployment and operations
 
+This guide covers the environment configuration and hosting setup represented by the repository's Render and Vercel deployment files.
+
 ## Configuration checklist
 
-Before deploying, prepare:
+Before deployment, prepare the following:
 
 - A reachable MongoDB database and connection URI.
 - A Cloudinary account for profile image and resume uploads.
@@ -10,13 +12,13 @@ Before deploying, prepare:
 - The final frontend and API HTTPS origins.
 - Optionally, a Groq API key if AI-backed coaching is wanted.
 
-Use the environment variable reference in the [README](../README.md#environment-variables). Keep all secrets in the hosting provider's environment settings; do not commit `.env` files.
+Use the [README environment-variable reference](../README.md#environment-variables) when configuring the services. Store secrets in the hosting provider's environment settings; never commit `.env` files.
 
 ## Render API
 
-The root `render.yaml` defines a Node web service with root directory `backend`, build command `npm install`, start command `npm start`, and health check `/health`.
+The root `render.yaml` defines a Node web service using `backend` as its root directory, `npm install` as its build command, `npm start` as its start command, and `/health` as its health-check path.
 
-Set these values in Render:
+Configure the following values in Render:
 
 | Variable | Value |
 | --- | --- |
@@ -29,25 +31,25 @@ Set these values in Render:
 | `GROQ_API_KEY` | Optional Groq API key. |
 | `GROQ_MODEL` | Optional model override. |
 
-Render supplies `PORT`. The API connects to MongoDB before listening, so an invalid/unreachable database prevents startup. `/health` reports process readiness after startup, but does not run a fresh database check.
+Render supplies `PORT`. The API connects to MongoDB before listening; an invalid or unreachable database therefore prevents startup. After startup, `/health` reports that the process is responding but does not run a new database connectivity check.
 
 ## Vercel frontend
 
-Configure the Vercel project root as `frontend`. Use:
+Set the Vercel project root to `frontend` and configure:
 
 - Build command: `npm run build`
 - Output directory: `dist`
 - Environment variable: `VITE_API_URL=https://<your-api-host>`
 
-The included `frontend/vercel.json` rewrites client-side routes to `index.html`, which allows refreshing nested React Router pages. Set `VITE_API_URL` for each Vercel environment before building.
+The included `frontend/vercel.json` rewrites client-side routes to `index.html`, allowing nested React Router pages to load on direct navigation and refresh. Set `VITE_API_URL` for each Vercel environment before building.
 
-After deployment, add the frontend's exact origin to the API's `FRONTEND_URL`. For preview deployments, list only trusted preview origins in `FRONTEND_URLS`.
+After deployment, set the API's `FRONTEND_URL` to the frontend's exact origin. For preview deployments, add only trusted origins to `FRONTEND_URLS`.
 
 ## Cookie and CORS behavior
 
-The API enables credentialed CORS only for listed frontend origins. In production, the authentication cookie is HTTP-only, `Secure`, and `SameSite=None`; both sites must use HTTPS. The frontend's Axios calls need `withCredentials: true` for session requests. Do not use wildcard CORS origins with credentials.
+The API enables credentialed CORS only for configured frontend origins. In production, the authentication cookie is HTTP-only, `Secure`, and `SameSite=None`; both services must use HTTPS. Frontend Axios requests must set `withCredentials: true` to send the session cookie. Wildcard origins cannot be used with credentialed CORS.
 
-For local development, the API automatically allows `http://localhost:5173` when `NODE_ENV` is not `production`; configure the frontend API base as `http://localhost:3000`.
+For local development, the API automatically allows `http://localhost:5173` when `NODE_ENV` is not `production`. Set the frontend API origin to `http://localhost:3000`.
 
 ## Troubleshooting
 
@@ -61,10 +63,10 @@ For local development, the API automatically allows `http://localhost:5173` when
 | AI features use fallback output | Confirm `GROQ_API_KEY`, model availability, network egress, and API logs. Fallbacks are expected when AI is disabled or a request fails. |
 | Application index creation fails on an existing database | Remove duplicate `(job, applicant)` application records, then restart so MongoDB can create the unique index. |
 
-## Operational notes
+## Operational considerations
 
-- Login and registration have a limit of 20 requests per 15 minutes. API traffic is limited to 600 requests per 15 minutes, and coach AI endpoints to 40 per hour per client.
-- Expired jobs are checked at startup and every minute while the process is running.
-- Candidate resumes are uploaded as Cloudinary raw assets. Treat resume URLs as sensitive and review Cloudinary access settings for the account.
-- The current application does not define automated deployment workflows or a root-level package manager workspace; deploy frontend and backend as separate services.
+- Login and registration are limited to 20 requests per client per 15 minutes. API traffic is limited to 600 requests per client per 15 minutes; AI-backed coaching endpoints are limited to 40 requests per hour.
+- Expired jobs are checked at startup and once per minute while the API process is running.
+- Candidate resumes are uploaded as Cloudinary raw assets. Treat resume URLs as sensitive and review the Cloudinary account's access settings.
+- The repository does not define automated deployment workflows or a root-level package-manager workspace. Deploy the frontend and backend as separate services.
 

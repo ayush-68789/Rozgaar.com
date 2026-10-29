@@ -1,12 +1,14 @@
 # Architecture and data model
 
+This guide describes the main application components, request flow, data entities, and career-coaching workflow.
+
 ## System overview
 
 ```text
 Browser (React + Vite)
   ├─ React Router pages and shared application context
   └─ Axios requests with session cookies
-       │ HTTPS + credentialed CORS
+       │ HTTPS and credentialed CORS
        ▼
 Express API (backend/index.js)
   ├─ security headers, JSON parsing, CORS, rate limits
@@ -16,17 +18,17 @@ Express API (backend/index.js)
   └─ optional career-coach requests → Groq API
 ```
 
-The frontend and backend are independently deployed. `VITE_API_URL` selects the API origin at frontend build time. The backend only allows configured frontend origins (`FRONTEND_URL` and comma-separated `FRONTEND_URLS`).
+The frontend and backend are deployed independently. `VITE_API_URL` selects the API origin when the frontend is built. The backend accepts browser requests only from origins configured in `FRONTEND_URL` and the comma-separated `FRONTEND_URLS` value.
 
 ## Backend request lifecycle
 
-1. Express applies Helmet, JSON/urlencoded parsers, cookie parsing, and credentialed CORS.
+1. Express applies Helmet security headers, request parsers, cookie parsing, and credentialed CORS.
 2. API requests pass through global and route-specific rate limits.
-3. Route middleware validates the JWT cookie where required and loads the account role for recruiter-only operations.
-4. Controllers enforce ownership and business rules, then read/write MongoDB through Mongoose models.
-5. Responses are JSON; unmatched paths return a JSON 404 and the error middleware masks unexpected server errors.
+3. Authentication middleware validates the JWT cookie where required. Recruiter-only routes also verify the account role.
+4. Controllers enforce ownership and business rules, then access MongoDB through Mongoose models.
+5. The API returns JSON responses. Unmatched paths return a JSON 404; the error handler masks unexpected server errors.
 
-At startup the API connects to MongoDB, closes expired jobs, and then listens on `PORT` (or `3000`). A scheduled process checks expired jobs once per minute.
+At startup, the API connects to MongoDB and closes expired jobs before listening on `PORT` (or `3000`). A background interval checks for expired jobs once per minute.
 
 ## Frontend organization
 
@@ -37,34 +39,34 @@ At startup the API connects to MongoDB, closes expired jobs, and then listens on
 - `frontend/src/utils/constant.js` builds API base URLs from `VITE_API_URL`; coach requests are collected in `frontend/src/utils/coachApi.js`.
 - `frontend/vercel.json` rewrites paths to `index.html` so React Router routes work on refresh.
 
-## Main data entities
+## Core data entities
 
 | Entity | Purpose and key relationships |
 | --- | --- |
-| User | Candidate or recruiter account; profile stores skills, resume metadata, recommendations, verified skills, projects, education, experience, achievements, and certificates. |
+| User | Candidate or recruiter account. The profile stores skills, resume metadata, recommendations, demonstrated skills, projects, education, experience, achievements, and certificates. |
 | Company | Recruiter-owned company profile. |
 | Job | Job listing associated with a company/recruiter; includes requirements, position count, expiry and open/closed state. |
 | Application | Connects a job and candidate; has a lifecycle status. A unique `(job, applicant)` index permits one application per candidate/job. |
 | Plan | Candidate learning plan, optionally associated with a job; contains ordered skill weeks, unlock/pass state, and portfolio ideas. |
 | Notification | User-targeted in-app event with read state. |
 
-Model definitions live in `backend/models/`. The `Job` schema is in `backend/models/Job.js` (the lowercase `job.model.js` re-exports it).
+Model definitions are in `backend/models/`. The `Job` schema is defined in `backend/models/Job.js`; `backend/models/job.model.js` re-exports it.
 
 ## Candidate coaching workflow
 
-1. Skill requirements are normalized and compared with the candidate's profile and quiz-demonstrated skills.
-2. A goal or job fit analysis identifies gaps. A plan contains up to eight ordered weekly skill units.
-3. The first week is unlocked. Passing that week's quiz with 70% or above unlocks the next unit and records the demonstrated skill.
-4. Recruiter applicant views can use skill fit and verified skills as signals alongside the application and profile.
+1. The API normalizes role or job requirements and compares them with the candidate's listed and quiz-demonstrated skills.
+2. Goal analysis or job-fit evaluation identifies skill gaps. A learning plan contains up to eight ordered weekly units.
+3. The first unit is unlocked initially. A passing score of at least 70% unlocks the next unit and records the demonstrated skill.
+4. Recruiter applicant views can use skill-fit results and demonstrated skills alongside application and profile information.
 
-If `GROQ_API_KEY` is configured, AI calls use Groq's OpenAI-compatible chat completions API. The application falls back to built-in goal templates, plan templates, self-assessment quizzes, and rule-based resume analysis when AI is unavailable. The key remains on the backend.
+When `GROQ_API_KEY` is configured, the API sends coaching requests to Groq's OpenAI-compatible chat-completions endpoint. If AI is disabled or unavailable, the application uses built-in goal and plan templates, self-assessment quizzes, and rule-based resume analysis. The API key is used only by the backend.
 
 ## External services
 
-- **MongoDB:** accounts, companies, jobs, applications, plans, and notifications.
-- **Cloudinary:** profile images and candidate resume files.
-- **Groq (optional):** goal analysis, generated plans/quizzes, and resume analysis.
-- **Hacker News:** source for the technology news feed; results are cached by the backend.
+- **MongoDB** stores accounts, companies, jobs, applications, plans, and notifications.
+- **Cloudinary** stores profile images and candidate resume files.
+- **Groq** optionally provides goal analysis, generated plans and quizzes, and resume analysis.
+- **Hacker News** supplies technology news; the backend caches feed results.
 
 ## Useful entry points
 
