@@ -1,70 +1,181 @@
-# Rozgaar.com + Career Coach
+# Rozgaar.com
 
-A MERN job portal (candidates and recruiters) merged with an AI career coach: goal analysis,
-week-by-week learning plans with quizzes, resume analyzer, tech news and projects.
-The two halves share one login, one user profile and one database.
+Rozgaar.com is a full-stack job portal for candidates and recruiters, with **Solvi**, an optional AI-assisted career coach. Candidates can discover and apply for jobs, build a profile, track applications, and work through skill plans. Recruiters can manage companies and job listings and review applicants.
 
-## Run it
+The application is a React/Vite single-page app backed by an Express API and MongoDB. Authentication uses an HTTP-only cookie. File uploads use Cloudinary; optional coaching features use Groq.
 
-```bash
-# backend
-cd backend
-cp .env.example .env      # fill MONGO_URI, SECRET_KEY, Cloudinary keys, and optionally GROQ_API_KEY
-npm install
-npm run dev               # http://localhost:3000
-npm test                  # unit + flow tests (no database needed)
+## Contents
 
-# frontend
-cd frontend
-cp .env.example .env      # VITE_API_URL=http://localhost:3000
-npm install
-npm run dev               # http://localhost:5173
+- [Features](#features)
+- [Technology](#technology)
+- [Run locally](#run-locally)
+- [Environment variables](#environment-variables)
+- [Deploy](#deploy)
+- [Project structure](#project-structure)
+- [Documentation](#documentation)
+- [Scripts](#scripts)
+- [Security and data notes](#security-and-data-notes)
+
+## Features
+
+### Candidates
+
+- Create a candidate profile with skills, resume, education, experience, projects, certificates, and achievements.
+- Browse and search job listings, view job details, apply once per job, and follow application status.
+- See skill fit against job requirements and receive job recommendations.
+- Use Solvi to analyze a career goal, create a learning plan for a role or job, take weekly quizzes, and track demonstrated skills.
+- Analyze a stored resume, maintain portfolio projects, and browse a technology news feed.
+- Receive in-app notifications for application events and status changes.
+
+### Recruiters
+
+- Create and manage company profiles and job listings.
+- Review applicants and their skill fit, shortlist applicants, update application status, and remove applications.
+- Job openings are enforced; filled listings close automatically.
+
+## Technology
+
+| Area | Stack |
+| --- | --- |
+| Frontend | React 18, Vite, React Router, Axios, Tailwind CSS |
+| API | Node.js, Express 4 |
+| Data | MongoDB with Mongoose |
+| Authentication | JWT in an HTTP-only cookie; bcrypt password hashing |
+| Uploads | Cloudinary; Multer handles incoming multipart files |
+| Career coach | Optional Groq chat completions; built-in template/rule-based fallbacks |
+| Hosting configuration | Render API (`render.yaml`), Vercel frontend (`frontend/vercel.json`) |
+
+## Run locally
+
+Requirements: Node.js 18 or newer, npm, MongoDB, and Cloudinary credentials. A Groq API key is optional.
+
+1. Clone the repository and create environment files from the examples:
+
+   ```bash
+   git clone https://github.com/ayush-68789/Rozgaar.com.git
+   cd Rozgaar.com
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   ```
+
+   On Windows PowerShell, use `Copy-Item backend/.env.example backend/.env` and `Copy-Item frontend/.env.example frontend/.env`.
+
+2. Fill in `backend/.env` as described below. Set the frontend API URL to `http://localhost:3000` in `frontend/.env`.
+
+3. Start the API:
+
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+   The API listens on `http://localhost:3000` by default. It connects to MongoDB before accepting requests. The health check is `http://localhost:3000/health`.
+
+4. In another terminal, start the web app:
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+   Vite prints the local URL (normally `http://localhost:5173`).
+
+## Environment variables
+
+### Backend (`backend/.env`)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGO_URI` | Yes | MongoDB connection string. |
+| `SECRET_KEY` | Yes | Long, random secret used to sign session JWTs. |
+| `CLOUD_NAME` | Yes for uploads | Cloudinary cloud name. |
+| `API_KEY` | Yes for uploads | Cloudinary API key. |
+| `API_SECRET` | Yes for uploads | Cloudinary API secret. |
+| `FRONTEND_URL` | Yes in production | Exact deployed frontend origin allowed by credentialed CORS. |
+| `FRONTEND_URLS` | Optional | Additional comma-separated allowed frontend origins, such as preview deployments. |
+| `GROQ_API_KEY` | Optional | Enables AI-backed coaching; without it the coach uses fallbacks. |
+| `GROQ_MODEL` | Optional | Groq model name; defaults to `openai/gpt-oss-20b`. |
+| `PORT` | Optional | API port; defaults to `3000` (Render supplies this automatically). |
+| `NODE_ENV` | Optional | Set to `production` when deployed; affects secure cookie settings. |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_API_URL` | Recommended | Backend origin without a trailing slash, e.g. `http://localhost:3000`. Defaults to `http://localhost:3000`. |
+
+Never commit `.env` files or put server-side secrets in frontend variables. Vite exposes `VITE_*` values to the browser bundle.
+
+## Deploy
+
+The repository includes a Render blueprint for the API and a Vercel rewrite for React Router deep links.
+
+### API on Render
+
+1. Create a Render web service from `render.yaml` (or configure a Node service with root directory `backend`).
+2. Use `npm install` for build and `npm start` for start. The health check path is `/health`.
+3. Set the secret environment values listed in the backend table. `FRONTEND_URL` must exactly match the deployed frontend origin; add any trusted preview origins to `FRONTEND_URLS`.
+4. Set `NODE_ENV=production`. Render sets `PORT` automatically.
+
+### Frontend on Vercel
+
+1. Import the repository and set the project root to `frontend`.
+2. Configure the Vite build (`npm run build`) and output directory (`dist`).
+3. Set `VITE_API_URL` to the deployed API origin, without a trailing slash.
+4. Deploy, then set that exact Vercel origin in the API's `FRONTEND_URL`.
+
+Production login depends on HTTPS because the session cookie is `Secure` and uses `SameSite=None`. Confirm both deployments use HTTPS and that browser requests allow credentials.
+
+## Project structure
+
+```text
+backend/
+  controllers/       Request handlers and application logic
+  middlewares/       Authentication, role checks, and uploads
+  models/            Mongoose schemas
+  routes/            REST route definitions
+  utils/             Database, AI, resume, matching, upload, and notification helpers
+  index.js           Express setup and server startup
+frontend/
+  src/components/    Shared, candidate, recruiter, and coach UI
+  src/context/       Shared application/session state
+  src/hooks/         Data-fetching hooks
+  src/pages/         Route-level pages
+  src/utils/         API endpoint configuration and helpers
+  vercel.json        SPA route rewrite
+render.yaml          Render API service blueprint
 ```
 
-## How the two halves connect
+## Documentation
 
-| Candidate does | What happens |
-|---|---|
-| Opens a job | A **readiness panel** compares the job's `requirements` with their skills and shows a match score. |
-| Clicks "Build my learning plan" | A weekly plan is generated for exactly the missing skills, with a quiz per week. |
-| Passes a week's quiz (70%+) | The next week unlocks and the skill becomes a **verified skill** on their profile. |
-| Applies | The recruiter sees a **skill-fit score**, quiz-verified skills and projects, and can sort applicants by best fit. |
-| Gets moved to "Interview" | An in-app notification arrives (every status change notifies the candidate). |
+- [API reference](docs/API.md): routes, access rules, and request conventions.
+- [Architecture and data model](docs/ARCHITECTURE.md): request flow, domain entities, and coaching workflow.
+- [Deployment and operations](docs/DEPLOYMENT.md): environment setup, hosting, and troubleshooting.
 
-Other coach features (all under **Career Coach** in the navbar):
-- **Goal analysis**: describe a goal; get the target role, required skills, gaps and a plan.
-- **Resume analyzer**: reads the PDF/DOCX already stored on the profile, scores it, lists strengths, weaknesses, missing keywords and fixes. Optionally compares against one job.
-- **Tech news**: Hacker News stories (no API key) filtered by the candidate's skills or chosen topics, cached for 20 minutes.
-- **Projects**: candidates list projects; suggested portfolio ideas come with each plan.
+## Scripts
 
-### AI is optional
-With `GROQ_API_KEY` set, plans, quizzes and resume reviews use Groq's chat completions API. Generate a key at [Groq Console](https://console.groq.com/keys), then set `GROQ_API_KEY=gsk_your_key_here` in `backend/.env`. The default model is `openai/gpt-oss-20b`; override it with `GROQ_MODEL` if needed.
-Without it the app still works: template plans, self-assessment quizzes (never marked as
-"verified") and a rule-based resume scan. AI endpoints are rate-limited (40/hour per client).
+| Directory | Command | Purpose |
+| --- | --- | --- |
+| `backend` | `npm run dev` | Start the API with nodemon. |
+| `backend` | `npm start` | Start the API with Node.js. |
+| `backend` | `npm test` | Run the Node built-in test runner. |
+| `frontend` | `npm run dev` | Start Vite's development server. |
+| `frontend` | `npm run build` | Build the production frontend into `dist/`. |
+| `frontend` | `npm run preview` | Serve the built frontend locally. |
+| `frontend` | `npm run lint` | Run ESLint. |
 
-## Fixes made to the original job portal
+## Security and data notes
 
-**Bugs**
-- Five application endpoints never replied on error (requests hung): now return proper JSON errors.
-- Double-apply race: unique `(job, applicant)` index plus duplicate-key handling.
-- Frontend defaulted to port 8000 while the backend uses 3000.
-- Emails are now lowercased on register/login/profile update; changing to an already-used email returns a clear error instead of a 500.
-- Register no longer uploads the photo to Cloudinary before checking the email is free.
+- API sessions are signed JWTs in HTTP-only cookies; passwords are hashed with bcrypt.
+- Production cookies require HTTPS. Credentialed CORS permits only configured frontend origins.
+- Login and registration are limited to 20 requests per 15 minutes per client; API routes have a 600-request per 15-minute limit. AI endpoints have a 40-request per-hour limit.
+- Candidate resumes are stored as Cloudinary raw assets. Configure Cloudinary and access policies with this in mind; the current upload model does not make resume assets private.
+- Applications have a unique `(job, applicant)` index. Existing databases with duplicate application records may need those duplicates cleaned up before MongoDB can create the index.
+- The frontend and API are separate deployments; CORS and `VITE_API_URL` must point to the same intended environment.
 
-**Security**
-- `GET /job/get/:id` no longer exposes the applications list (ids and statuses) to the public.
-- Applying is now `POST` (a state-changing `GET` could be triggered cross-site with the session cookie).
-- Rate limiting on login/register (20 per 15 min) and globally; `helmet` headers; password minimum 8 characters; JSON 404/error handlers.
+## Contributing
 
-**Product / quality**
-- `position` is now enforced: you can't hire more candidates than openings, and the job auto-closes when filled.
-- In-app notifications (bell in the navbar) for new applications and status changes.
-- Job list pagination (`?page=&limit=`; default page size 100 so the existing UI keeps working) and no application ids on the public list.
-- Removed the "close expired jobs" database write from every read; the startup + 1-minute job remains.
-- Added tests (`npm test`): skill matching, the whole plan → quiz → unlock flow, resume analyzer.
+Open an issue to discuss a substantial change, then submit a pull request with a clear summary and verification steps. Keep credentials and personal data out of commits.
 
-## Known limitations / next steps
-- Resumes are still stored as public Cloudinary files. Making them private needs signed URLs plus a frontend change.
-- `AppContext` is still one large context.
-- If your database already has duplicate applications for the same job and candidate, MongoDB can't build the new unique index until you remove the duplicates.
-- The news feed and the live AI calls need internet access from your server; they could not be exercised from the build sandbox.
