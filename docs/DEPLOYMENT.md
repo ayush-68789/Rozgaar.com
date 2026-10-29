@@ -14,6 +14,18 @@ Before deployment, prepare the following:
 
 Use the [README environment-variable reference](../README.md#environment-variables) when configuring the services. Store secrets in the hosting provider's environment settings; never commit `.env` files.
 
+### Recommended deployment order
+
+1. Create the MongoDB database and allow network connections from the API host.
+2. Create the Cloudinary account and record its server-side credentials.
+3. Deploy the API with `MONGO_URI`, `SECRET_KEY`, Cloudinary credentials, and `NODE_ENV=production` configured.
+4. Confirm the API's `/health` endpoint responds and review the service logs for successful database connection.
+5. Deploy the frontend with `VITE_API_URL` set to the API's HTTPS origin.
+6. Set `FRONTEND_URL` on the API to the deployed frontend's exact origin and redeploy/restart the API if required by the hosting provider.
+7. Test registration, login persistence, a public job listing, and one authenticated operation from the deployed frontend.
+
+Set the final API and frontend origins before production rollout. Preview deployments use separate origins; only add preview origins that are trusted and actively needed.
+
 ## Render API
 
 The root `render.yaml` defines a Node web service using `backend` as its root directory, `npm install` as its build command, `npm start` as its start command, and `/health` as its health-check path.
@@ -51,6 +63,8 @@ The API enables credentialed CORS only for configured frontend origins. In produ
 
 For local development, the API automatically allows `http://localhost:5173` when `NODE_ENV` is not `production`. Set the frontend API origin to `http://localhost:3000`.
 
+The API normalizes trailing slashes from configured origins before comparing them to the browser's `Origin` header. Include the scheme and hostname, and include a port when using a nonstandard port. Do not include a path such as `/api` in `FRONTEND_URL`.
+
 ## Troubleshooting
 
 | Symptom | Checks |
@@ -62,6 +76,12 @@ For local development, the API automatically allows `http://localhost:5173` when
 | Uploads fail | Verify all Cloudinary credentials and check provider limits/file types. Candidate resumes accept PDF, DOC, or DOCX. |
 | AI features use fallback output | Confirm `GROQ_API_KEY`, model availability, network egress, and API logs. Fallbacks are expected when AI is disabled or a request fails. |
 | Application index creation fails on an existing database | Remove duplicate `(job, applicant)` application records, then restart so MongoDB can create the unique index. |
+| Login succeeds but protected requests return `401` | Confirm the browser stores the `token` cookie, the frontend request includes credentials, and the cookie is not blocked by browser privacy settings. |
+| Protected requests return `403` | Check that the signed-in account has the required role and that the resource belongs to that account. |
+| API returns `429` | Wait for the applicable limit window to reset. Credential, global API, and AI endpoints have separate rate-limit scopes. |
+| Direct navigation to a nested frontend URL returns `404` | Confirm Vercel is using `frontend/vercel.json` and the frontend project root is set to `frontend`. |
+| Job listings do not appear | Check whether a listing is open, whether its application deadline has passed, and whether the keyword filters match the job fields. |
+| AI coach returns template-based results | This is expected when `GROQ_API_KEY` is absent or an AI response cannot be used. Review API logs and provider connectivity if AI output is required. |
 
 ## Operational considerations
 
@@ -69,4 +89,21 @@ For local development, the API automatically allows `http://localhost:5173` when
 - Expired jobs are checked at startup and once per minute while the API process is running.
 - Candidate resumes are uploaded as Cloudinary raw assets. Treat resume URLs as sensitive and review the Cloudinary account's access settings.
 - The repository does not define automated deployment workflows or a root-level package-manager workspace. Deploy the frontend and backend as separate services.
+
+## Release verification checklist
+
+After each deployment, verify the following in the target environment:
+
+- The API service starts and logs a successful MongoDB connection.
+- `GET /health` returns HTTP `200` with `{ "status": "ok" }`.
+- The frontend was built with the correct `VITE_API_URL` for this environment.
+- Browser requests from the frontend origin pass credentialed CORS preflight and carry the session cookie after login.
+- The production cookie is marked `HttpOnly`, `Secure`, and `SameSite=None`.
+- Candidate and recruiter access checks behave as expected, including attempts to manage resources owned by another account.
+- Cloudinary uploads work with the configured account, and resume access settings match the deployment's privacy requirements.
+- Optional Groq and news functionality can reach their external services, or the fallback behavior is acceptable.
+
+## Environment separation
+
+Use distinct database credentials and secret values for development, preview, and production where possible. Configure frontend and backend values as a matched pair in each environment: the frontend's `VITE_API_URL` must point to that environment's API, and the API must allow the corresponding frontend origin. Avoid adding broad wildcard or unrelated preview origins to the CORS allowlist.
 

@@ -33,6 +33,10 @@ The platform consists of a React single-page application and an Express API back
 - Review applicants and skill alignment, shortlist candidates, update application statuses, and manage applications.
 - Enforce the number of available positions and automatically close listings when all positions are filled.
 
+### Application lifecycle
+
+Candidate applications begin in the `pending` state. Recruiters can move an application through shortlisting, interview, offer, acceptance, or rejection. Candidates can review their submitted applications and receive notifications when a recruiter changes a status. A job listing closes when its deadline passes or its available positions have been filled.
+
 ## Technology
 
 | Area | Stack |
@@ -81,6 +85,22 @@ Requirements: Node.js 20.19 or newer, npm, and a MongoDB database. Cloudinary cr
    ```
 
    Vite prints the local development URL (typically `http://localhost:5173`).
+
+### Verify the local setup
+
+Open the frontend URL printed by Vite, register either a candidate or recruiter account, and confirm that the session persists across page navigation. The API health endpoint can be checked independently:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+The health endpoint confirms that the API process is responding. It does not perform a new database connectivity check; database connectivity is established before the server begins listening.
 
 ## Environment variables
 
@@ -148,6 +168,14 @@ frontend/
 render.yaml          Render API service blueprint
 ```
 
+### Request flow
+
+1. The browser loads the Vite-built React application and reads the API origin from `VITE_API_URL`.
+2. Frontend requests send credentials so the browser can attach the API's HTTP-only session cookie.
+3. Express applies security headers, CORS policy, parsing, and rate limits before dispatching requests to route middleware and controllers.
+4. Controllers apply role, ownership, and application rules, then persist data through Mongoose.
+5. Profile and resume files are sent to Cloudinary. Optional career-coaching requests are sent from the backend to Groq.
+
 ## Documentation
 
 - [API reference](docs/API.md): routes, access rules, and request conventions.
@@ -165,6 +193,20 @@ render.yaml          Render API service blueprint
 | `frontend` | `npm run build` | Build the production frontend into `dist/`. |
 | `frontend` | `npm run preview` | Serve the built frontend locally. |
 | `frontend` | `npm run lint` | Run ESLint. |
+
+Run commands from the relevant package directory (`backend` or `frontend`). There is no root package manifest or shared workspace command.
+
+## Configuration reference
+
+| Component | Local address | Production configuration |
+| --- | --- | --- |
+| Frontend | `http://localhost:5173` | Vercel project rooted at `frontend`; API origin supplied by `VITE_API_URL`. |
+| API | `http://localhost:3000` | Render service rooted at `backend`; `PORT` is supplied by Render. |
+| Database | Your configured MongoDB URI | `MONGO_URI` must be reachable from the API host. |
+| File storage | Your Cloudinary account | `CLOUD_NAME`, `API_KEY`, and `API_SECRET` are backend-only settings. |
+| AI provider | Optional | `GROQ_API_KEY` and optional `GROQ_MODEL` are backend-only settings. |
+
+See the [deployment guide](docs/DEPLOYMENT.md) for service configuration and the [API reference](docs/API.md) for endpoint details.
 
 ## Security and data considerations
 

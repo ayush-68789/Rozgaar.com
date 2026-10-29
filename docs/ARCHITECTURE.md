@@ -61,6 +61,52 @@ Model definitions are in `backend/models/`. The `Job` schema is defined in `back
 
 When `GROQ_API_KEY` is configured, the API sends coaching requests to Groq's OpenAI-compatible chat-completions endpoint. If AI is disabled or unavailable, the application uses built-in goal and plan templates, self-assessment quizzes, and rule-based resume analysis. The API key is used only by the backend.
 
+### Job-to-application workflow
+
+1. Recruiters create a company profile and associate job listings with a company they own.
+2. Public job searches return listings newest first, with pagination and keyword matching across job content and company name. The public response excludes application identifiers.
+3. A candidate can apply while the listing is open and before its deadline. The database's unique `(job, applicant)` index prevents a second application for the same listing, including concurrent submissions.
+4. Recruiters can view applicants for their own listings. Applicant responses include a skill-fit result based on the job requirements and the candidate's listed or demonstrated skills.
+5. Recruiters update application status. The candidate receives an in-app notification when the status changes. Acceptance counts against the position limit; the listing closes when the limit is reached.
+
+### Data ownership and relationships
+
+- A recruiter owns company profiles and job listings. Job ownership is recorded separately from its company association.
+- A candidate owns their profile, applications, learning plans, and notifications.
+- An application references both one job and one candidate. The job also keeps application references for recruiter-facing listing views.
+- A learning plan belongs to a candidate and may optionally reference a job. Each plan stores the role, required and missing skills, plan source, ordered weeks, progress, and portfolio ideas.
+- A notification belongs to one account and stores its type, display text, optional in-app link, read state, and timestamps.
+
+## Business rules and data integrity
+
+- Email addresses are normalized to lowercase on account creation and profile update. Passwords must contain at least eight characters and are stored as bcrypt hashes.
+- An application is allowed only for a candidate account and an open job whose deadline has not passed.
+- The compound unique application index prevents duplicate applications. Historical duplicate records can block index creation during deployment and must be resolved before the index can be created.
+- Recruiters may manage only companies and jobs that they own. Candidate coaching plans and projects are scoped to the authenticated candidate.
+- Application status values are constrained by the schema. A listing cannot accept more candidates than its `position` count.
+- Coach skill matching considers both profile-listed skills and demonstrated skills. Quiz verification is separate from self-assessment.
+
+## External calls and fallback behavior
+
+AI calls are made server-side and use a request timeout. The API treats an unavailable or invalid AI response as a signal to use a local fallback for supported features. This keeps core career-coaching functionality available without exposing provider credentials in the frontend.
+
+Technology news comes from Hacker News stories queried through Algolia. The API filters for recent stories with engagement and caches results to avoid repeated external requests. News and AI features require outbound network access from the API host.
+
+## Security boundaries
+
+- JWTs are stored in HTTP-only cookies so frontend JavaScript cannot read the token directly.
+- Production cookies use `Secure` and `SameSite=None` for cross-origin frontend/API deployments; HTTPS is required.
+- Credentialed CORS uses an explicit origin allowlist. `FRONTEND_URL` and `FRONTEND_URLS` must be configured to match the deployed frontend origins.
+- Recruiter role checks and ownership checks are enforced by backend middleware/controllers; hiding a frontend route is not the authorization boundary.
+- Public job responses exclude application identifiers. Resume download requests validate the upstream Cloudinary host/account before fetching the file.
+- Rate limits apply to the API globally, to credential endpoints, and to AI-backed coach routes.
+
+## Runtime behavior and limitations
+
+The process connects to MongoDB before accepting requests. The `/health` endpoint indicates that the API process responds, but it is not a live database readiness probe. Expired-job cleanup runs on startup and once per minute in each running process. If multiple API instances run concurrently, each instance runs this interval.
+
+Uploaded resumes are stored as Cloudinary raw assets. The current application does not configure private asset delivery, so operators should review account-level access settings and treat resume URLs as sensitive. Quiz session state is held in process memory; active quiz sessions are not shared across API instances or preserved across process restarts.
+
 ## External services
 
 - **MongoDB** stores accounts, companies, jobs, applications, plans, and notifications.
